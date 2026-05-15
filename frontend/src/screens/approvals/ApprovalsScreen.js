@@ -233,7 +233,7 @@ const ApprovalsScreen = () => {
       setLeaveAction(requestId, "approving");
 
       await api.put(`/Leave/requests/${requestId}/approve`, {
-        comment: "Approved by HR/Admin",
+        comment: "Approved by Admin",
       });
 
       setLeaveRequests((prev) =>
@@ -256,7 +256,7 @@ const ApprovalsScreen = () => {
       setLeaveAction(requestId, "rejecting");
 
       await api.put(`/Leave/requests/${requestId}/reject`, {
-        comment: "Rejected by HR/Admin",
+        comment: "Rejected by Admin",
       });
 
       setLeaveRequests((prev) =>
@@ -357,7 +357,7 @@ const ApprovalsScreen = () => {
               setUserAction(userId, "rejecting");
 
               await api.put(`/admin/users/${userId}/reject`, {
-                reason: "Rejeté par RH/Admin",
+                reason: "Rejeté par l'Admin",
               });
 
               setPendingUsers((prev) =>
@@ -1055,7 +1055,7 @@ const createStyles = (colors, spacing, typography, borderRadius, shadows) =>
 
     content: {
       padding: spacing.lg,
-      paddingBottom: spacing.xxl,
+      paddingBottom: spacing.xxl + 90,
     },
 
     tabsContainer: {

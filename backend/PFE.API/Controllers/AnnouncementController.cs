@@ -37,7 +37,7 @@ public class AnnouncementController : ControllerBase
         return Ok(ApiResponse<AnnouncementDto>.SuccessResponse(result));
     }
 
-    [Authorize(Roles = "Admin,HR")]
+    [Authorize(Roles = "Admin")]
     [HttpGet("manage")]
     public async Task<ActionResult<ApiResponse<List<AnnouncementDto>>>> GetManageable()
     {
@@ -45,9 +45,9 @@ public class AnnouncementController : ControllerBase
         return Ok(ApiResponse<List<AnnouncementDto>>.SuccessResponse(result));
     }
 
-    [Authorize(Roles = "Admin,HR")]
+    [Authorize(Roles = "Admin")]
     [HttpPost]
-    public async Task<ActionResult<ApiResponse<AnnouncementDto>>> Create([FromBody] CreateAnnouncementDto dto)
+    public async Task<ActionResult<ApiResponse<AnnouncementDto>>> Create([FromForm] CreateAnnouncementDto dto)
     {
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
         var result = await _announcementService.CreateAsync(userId, dto);
@@ -55,7 +55,7 @@ public class AnnouncementController : ControllerBase
         return Ok(ApiResponse<AnnouncementDto>.SuccessResponse(result, "Announcement created successfully"));
     }
 
-    [Authorize(Roles = "Admin,HR")]
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<AnnouncementDto>>> Update(int id, [FromBody] UpdateAnnouncementDto dto)
     {
@@ -67,7 +67,7 @@ public class AnnouncementController : ControllerBase
         return Ok(ApiResponse<AnnouncementDto>.SuccessResponse(result, "Announcement updated successfully"));
     }
 
-    [Authorize(Roles = "Admin,HR")]
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {

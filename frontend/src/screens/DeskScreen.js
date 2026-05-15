@@ -49,7 +49,6 @@ const createStyles = (
       backgroundColor: colors.background,
     },
 
-    // ── Header ──────────────────────────────────────────────
     header: {
       flexDirection: "row",
       alignItems: "center",
@@ -93,7 +92,6 @@ const createStyles = (
       borderColor: colors.border,
     },
 
-    // ── Status card ─────────────────────────────────────────
     statusCard: {
       marginHorizontal: spacing.lg,
       marginTop: spacing.md,
@@ -144,7 +142,6 @@ const createStyles = (
       alignSelf: "flex-start",
     },
 
-    // ── Map ─────────────────────────────────────────────────
     scrollView: {
       flex: 1,
     },
@@ -177,7 +174,6 @@ const createStyles = (
       paddingHorizontal: spacing.xl,
     },
 
-    // ── Table card ──────────────────────────────────────────
     tableCard: {
       padding: spacing.lg,
       borderRadius: borderRadius.xl,
@@ -256,7 +252,6 @@ const createStyles = (
       paddingVertical: 2,
     },
 
-    // ── Seat ────────────────────────────────────────────────
     seatBox: {
       width: 56,
       height: 50,
@@ -278,7 +273,6 @@ const createStyles = (
       alignItems: "center",
     },
 
-    // ── Legend ──────────────────────────────────────────────
     legend: {
       flexDirection: "row",
       justifyContent: "center",
@@ -305,7 +299,6 @@ const createStyles = (
       color: colors.textSecondary,
     },
 
-    // ── Modal ───────────────────────────────────────────────
     modalOverlay: {
       flex: 1,
       backgroundColor: colors.overlay,
@@ -348,7 +341,6 @@ const createStyles = (
       marginTop: spacing.lg,
     },
 
-    // ── Action panel ────────────────────────────────────────
     actionPanel: {
       position: "absolute",
       bottom: 90 + (insets?.bottom ?? 0),
@@ -489,7 +481,6 @@ const DeskScreen = () => {
     const scannedValue = String(data).trim().toUpperCase();
     const reservedSeat = String(mySeatLabel).trim().toUpperCase();
 
-    // ✅ reject wrong QR locally
     if (scannedValue !== reservedSeat) {
       Alert.alert(
         "QR incorrect",
@@ -509,7 +500,6 @@ const DeskScreen = () => {
     try {
       const response = await seatService.checkInReservation(data);
 
-      // ✅ Axios fix: response.data contains backend result
       const result = response?.data ?? response;
 
       if (result?.success) {

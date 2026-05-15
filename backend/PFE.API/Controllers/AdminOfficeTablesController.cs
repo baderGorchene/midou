@@ -9,7 +9,7 @@ namespace PFE.API.Controllers;
 
 [ApiController]
 [Route("api/admin/officetables")]
-[Authorize(Roles = "Admin,HR")]
+[Authorize(Roles = "Admin")]
 public class AdminOfficeTablesController : ControllerBase
 {
     private readonly IOfficeTableService _officeTableService;

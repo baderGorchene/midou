@@ -18,7 +18,6 @@ public class RoomsController : ControllerBase
         _roomService = roomService;
     }
 
-    // ✅ Get all rooms (any authenticated user)
     [HttpGet]
     public async Task<ActionResult<ApiResponse<List<RoomDto>>>> GetAll()
     {
@@ -26,7 +25,6 @@ public class RoomsController : ControllerBase
         return Ok(ApiResponse<List<RoomDto>>.SuccessResponse(rooms));
     }
 
-    // ✅ Get room by id (any authenticated user)
     [HttpGet("{id}")]
     public async Task<ActionResult<ApiResponse<RoomDto>>> GetById(int id)
     {
@@ -38,9 +36,8 @@ public class RoomsController : ControllerBase
         return Ok(ApiResponse<RoomDto>.SuccessResponse(room));
     }
 
-    // ✅ Create room (Admin + HR)
     [HttpPost]
-    [Authorize(Roles = "Admin,HR")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResponse<RoomDto>>> Create([FromBody] CreateRoomDto dto)
     {
         var room = await _roomService.CreateAsync(dto);
@@ -51,9 +48,8 @@ public class RoomsController : ControllerBase
         ));
     }
 
-    // ✅ Update room (Admin + HR)
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin,HR")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResponse<RoomDto>>> Update(int id, [FromBody] UpdateRoomDto dto)
     {
         var updated = await _roomService.UpdateAsync(id, dto);
@@ -67,9 +63,8 @@ public class RoomsController : ControllerBase
         ));
     }
 
-    // ✅ Delete room (Admin + HR)
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,HR")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResponse<object>>> Delete(int id)
     {
         var success = await _roomService.DeleteAsync(id);
@@ -83,9 +78,8 @@ public class RoomsController : ControllerBase
         ));
     }
 
-    // ✅ Generate permanent QR for room (Admin + HR)
     [HttpPost("{id}/generate-qr")]
-    [Authorize(Roles = "Admin,HR")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResponse<RoomDto>>> GenerateQr(int id)
     {
         var room = await _roomService.GeneratePermanentQrAsync(id);

@@ -28,12 +28,32 @@ public class AuthService : IAuthService
             .Include(u => u.Role)
             .FirstOrDefaultAsync(u => u.Email == loginDto.Email);
 
-        if (user == null || !BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
+        if (user == null)
         {
             return null;
         }
 
-        // Check if user is active
+        if (string.IsNullOrWhiteSpace(user.PasswordHash))
+        {
+            throw new Exception("PasswordHash is empty for this user.");
+        }
+
+        bool isPasswordValid;
+
+        try
+        {
+            isPasswordValid = BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash);
+        }
+        catch
+        {
+            throw new Exception("Invalid PasswordHash in database. This user password is not correctly hashed.");
+        }
+
+        if (!isPasswordValid)
+        {
+            return null;
+        }
+
         if (!user.IsActive)
         {
             return new AuthResponseDto
@@ -41,6 +61,11 @@ public class AuthService : IAuthService
                 Token = string.Empty,
                 User = null
             };
+        }
+
+        if (user.Role == null)
+        {
+            throw new Exception("User role is missing.");
         }
 
         var token = _jwtService.GenerateToken(user.Id, user.Email, user.Role.Name);
@@ -68,6 +93,7 @@ public class AuthService : IAuthService
             FullName = registerDto.FullName,
             RoleId = 1, // Always Employee, ignore client input
             DepartmentId = registerDto.DepartmentId,
+            PhoneNumber = registerDto.PhoneNumber,
             LeaveBalance = null, // Null until admin approval, ignore client input
             IsActive = false, // Inactive until admin approval
             CreatedAt = DateTime.UtcNow

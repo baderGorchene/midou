@@ -50,8 +50,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<Role>().HasData(
         new Role { Id = 1, Name = "Employee", Description = "Regular employee" },
         new Role { Id = 2, Name = "Manager", Description = "Department manager" },
-        new Role { Id = 3, Name = "Admin", Description = "System administrator" },
-        new Role { Id = 4, Name = "HR", Description = "Human resources" }
+        new Role { Id = 3, Name = "Admin", Description = "System administrator" }
     );
 
         modelBuilder.Entity<User>()
@@ -280,6 +279,9 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.Email)
                 .IsRequired()
                 .HasMaxLength(255);
+
+            entity.Property(e => e.PhoneNumber)
+                .HasMaxLength(20);
 
             entity.Property(e => e.PasswordHash)
                 .IsRequired()

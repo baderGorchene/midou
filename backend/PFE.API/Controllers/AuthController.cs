@@ -21,27 +21,35 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Login([FromBody] LoginDto loginDto)
     {
-        var result = await _authService.LoginAsync(loginDto);
-        
-        if (result == null)
+        try
         {
-            return BadRequest(ApiResponse<AuthResponseDto>.ErrorResponse("Invalid email or password"));
-        }
+            var result = await _authService.LoginAsync(loginDto);
 
-        // Check if user account is inactive (pending approval)
-        if (result.User == null || string.IsNullOrEmpty(result.Token))
+            if (result == null)
+            {
+                return BadRequest(ApiResponse<AuthResponseDto>.ErrorResponse("Invalid email or password"));
+            }
+
+            if (result.User == null || string.IsNullOrEmpty(result.Token))
+            {
+                return StatusCode(403, ApiResponse<AuthResponseDto>.ErrorResponse("Your account is pending admin approval."));
+            }
+
+            return Ok(ApiResponse<AuthResponseDto>.SuccessResponse(result, "Login successful"));
+        }
+        catch (Exception ex)
         {
-            return StatusCode(403, ApiResponse<AuthResponseDto>.ErrorResponse("Your account is pending admin approval."));
+            return StatusCode(500, ApiResponse<AuthResponseDto>.ErrorResponse(
+                ex.InnerException?.Message ?? ex.Message
+            ));
         }
-
-        return Ok(ApiResponse<AuthResponseDto>.SuccessResponse(result, "Login successful"));
     }
 
     [HttpPost("register")]
     public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Register([FromBody] RegisterDto registerDto)
     {
         var result = await _authService.RegisterAsync(registerDto);
-        
+
         if (result == null)
         {
             return BadRequest(ApiResponse<AuthResponseDto>.ErrorResponse("Email already exists"));

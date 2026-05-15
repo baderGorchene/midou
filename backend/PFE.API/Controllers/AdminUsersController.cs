@@ -9,7 +9,7 @@ namespace PFE.API.Controllers;
 
 [ApiController]
 [Route("api/admin/users")]
-[Authorize(Roles = "Admin,HR")]
+[Authorize(Roles = "Admin")]
 public class AdminUsersController : ControllerBase
 {
     private readonly IAdminUserService _adminUserService;

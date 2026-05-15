@@ -158,7 +158,7 @@ function AnimatedTabItem({
           <Animated.View
             style={{
               opacity: labelAnim,
-              marginLeft: 7,
+              marginLeft: 4,
               transform: [
                 {
                   translateX: labelAnim.interpolate({
@@ -303,6 +303,11 @@ export default function CustomBottomTabBar({ state, navigation }) {
         return {
           icon: focused ? "checkmark-circle" : "checkmark-circle-outline",
           label: "Approb.",
+        };
+      case "Statistics":
+        return {
+          icon: focused ? "bar-chart" : "bar-chart-outline",
+          label: "Stats",
         };
       default:
         return {
@@ -476,7 +481,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 10,
+    paddingHorizontal: 4,
   },
 
   iconWrap: {

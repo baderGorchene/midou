@@ -217,7 +217,7 @@ export default function DepartmentChannelScreen() {
   const { refreshChannelInfo } = useDepartmentChannel();
 
   const departmentId = user?.departmentId ?? user?.DepartmentId ?? null;
-  const roleName = roleToString(user?.role);
+  const roleName = roleToString(user?.roleName ?? user?.roleId ?? user?.role);
   const isManager = roleName === "Manager" || roleName === "Admin";
 
   const [keyboardVisible, setKeyboardVisible] = useState(false);

@@ -8,7 +8,7 @@ namespace PFE.API.Controllers;
 
 [ApiController]
 [Route("api/admin/rooms")]
-[Authorize(Roles = "Admin,HR")]
+[Authorize(Roles = "Admin")]
 public class AdminRoomsController : ControllerBase
 {
     private readonly IRoomService _roomService;

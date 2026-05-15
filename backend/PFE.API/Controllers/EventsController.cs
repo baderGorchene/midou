@@ -26,7 +26,7 @@ public class EventsController : ControllerBase
     /// <param name="dto">Event details</param>
     /// <returns>Created event</returns>
     [HttpPost]
-    [Authorize(Roles = "Manager,Admin,HR")]
+    [Authorize(Roles = "Manager,Admin")]
     public async Task<ActionResult<ApiResponse<EventDto>>> CreateEvent([FromBody] CreateEventDto dto)
     {
         var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);

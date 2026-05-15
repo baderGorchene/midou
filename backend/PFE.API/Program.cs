@@ -17,13 +17,11 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
-// Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(c =>
@@ -34,10 +32,8 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = "Internal Company Mobile App API"
     });
-    // ✅ FIX: avoid schemaId conflicts between DTOs with same name
     c.CustomSchemaIds(type => type.FullName);
 
-    // JWT Authentication in Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token",
@@ -63,7 +59,6 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// CORS - In Development allow any origin so emulator/device can reach the API
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactNative", policy =>
@@ -78,6 +73,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<IOfficeLayoutService, OfficeLayoutService>();
 
 builder.Services.AddScoped<IOfficeLayoutService, OfficeLayoutService>();
+
+builder.Services.AddScoped<CloudinaryService>();
 
 // Database - EF Core with SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -114,7 +111,6 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Authorization Policies for Roles
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("EmployeeOnly", policy => policy.RequireRole("Employee"));
@@ -127,7 +123,6 @@ builder.Services.AddAuthorization(options =>
 // AutoMapper
 builder.Services.AddAutoMapper(typeof(MappingProfile));
 
-// Repositories (Optional - can use DbContext directly in services)
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // Application Services
@@ -145,13 +140,13 @@ builder.Services.AddScoped<IInternalRequestService, InternalRequestService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IAdminUserService, AdminUserService>();
+builder.Services.AddScoped<IAdminStatisticsService, AdminStatisticsService>();
 builder.Services.AddScoped<IDepartmentChannelService, DepartmentChannelService>();
 builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
 builder.Services.AddScoped<IOfficeTableService, OfficeTableService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -162,18 +157,15 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// app.UseHttpsRedirection();
-
-// Custom Middleware
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
-// CORS must be before UseAuthentication and UseAuthorization
 app.UseCors("AllowReactNative");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
 
 // Seed database in development
 if (app.Environment.IsDevelopment())

@@ -261,9 +261,6 @@ const EditRoomModal = ({
   );
 };
 
-/* ══════════════════════════════════
-   Main Screen
-══════════════════════════════════ */
 const RoomManagementScreen = () => {
   const { colors, spacing, typography, borderRadius, shadows } = useTheme();
   const styles = useMemo(
@@ -303,7 +300,6 @@ const RoomManagementScreen = () => {
     try {
       const uri = await qrRef.current.capture();
 
-      // convert to base64
       const base64 = await fetch(uri)
         .then((res) => res.blob())
         .then((blob) => {

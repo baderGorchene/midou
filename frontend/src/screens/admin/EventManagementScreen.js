@@ -14,11 +14,11 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect , useRoute } from "@react-navigation/native";
+import { useFocusEffect, useRoute } from "@react-navigation/native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
 import { eventService } from "../../services/api";
-import { Card, Button, Input } from "../../components";
+import { Card, Input } from "../../components";
 import EmptyState from "../../components/EmptyState";
 
 const EVENT_TYPES = [
@@ -31,7 +31,16 @@ const EVENT_TYPES = [
   { value: 7, label: "Autre", color: "#9CA3AF" },
 ];
 
-const EditEventModal = ({ visible, event, onClose, onSave, colors, spacing, typography, borderRadius }) => {
+const EditEventModal = ({
+  visible,
+  event,
+  onClose,
+  onSave,
+  colors,
+  spacing,
+  typography,
+  borderRadius,
+}) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState(1);
@@ -41,22 +50,32 @@ const EditEventModal = ({ visible, event, onClose, onSave, colors, spacing, typo
   const [rsvpEnabled, setRsvpEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const [pickerTarget, setPickerTarget] = useState(null);
+  const [pickerMode, setPickerMode] = useState("date");
+
   React.useEffect(() => {
     if (visible && event) {
-      setTitle(event.title || "");
-      setDescription(event.description || "");
-      setType(event.type || 1);
-      setStartDateTime(new Date(event.startDateTime || Date.now()));
-      setEndDateTime(new Date(event.endDateTime || Date.now() + 3600000));
-      setIsMandatory(event.isMandatory || false);
-      setRsvpEnabled(event.rsvpEnabled !== false);
+      setTitle(event.title || event.Title || "");
+      setDescription(event.description || event.Description || "");
+      setType(event.type || event.Type || 1);
+      setStartDateTime(
+        new Date(event.startDateTime || event.StartDateTime || Date.now()),
+      );
+      setEndDateTime(
+        new Date(
+          event.endDateTime || event.EndDateTime || Date.now() + 3600000,
+        ),
+      );
+      setIsMandatory(event.isMandatory || event.IsMandatory || false);
+      setRsvpEnabled(event.rsvpEnabled ?? event.RsvpEnabled ?? true);
     } else if (visible) {
-      // New event defaults
       const now = new Date();
       now.setMinutes(0, 0, 0);
       now.setHours(now.getHours() + 1);
+
       const end = new Date(now);
       end.setHours(end.getHours() + 1);
+
       setTitle("");
       setDescription("");
       setType(1);
@@ -67,21 +86,21 @@ const EditEventModal = ({ visible, event, onClose, onSave, colors, spacing, typo
     }
   }, [visible, event]);
 
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
-  const [pickerMode, setPickerMode] = useState("date");
-
   const validate = () => {
     if (!title.trim()) return "Titre requis";
-    if (endDateTime <= startDateTime) return "Fin après début";
+    if (endDateTime <= startDateTime) return "La fin doit être après le début";
     return null;
   };
 
   const handleSave = async () => {
     const error = validate();
-    if (error) return Alert.alert("Erreur", error);
+    if (error) {
+      Alert.alert("Erreur", error);
+      return;
+    }
 
     setSaving(true);
+
     try {
       const payload = {
         title: title.trim(),
@@ -92,7 +111,8 @@ const EditEventModal = ({ visible, event, onClose, onSave, colors, spacing, typo
         isMandatory,
         rsvpEnabled,
       };
-      await onSave(event?.id, payload);
+
+      await onSave(event?.id ?? event?.Id, payload);
       onClose();
     } catch (e) {
       Alert.alert("Erreur", "Échec sauvegarde");
@@ -101,113 +121,380 @@ const EditEventModal = ({ visible, event, onClose, onSave, colors, spacing, typo
     }
   };
 
-  const s = useMemo(() => StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-    sheet: { backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.xl },
-    handle: { width: 40, height: 4, backgroundColor: colors.border, alignSelf: "center", marginBottom: spacing.lg, borderRadius: 2 },
-    title: { fontSize: typography.lg, fontWeight: "bold", color: colors.text, marginBottom: spacing.lg },
-    label: { fontSize: typography.sm, fontWeight: "600", color: colors.textSecondary, marginBottom: 6 },
-    input: { backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border, borderRadius: borderRadius.md, paddingHorizontal: 14, paddingVertical: 12, fontSize: typography.base, color: colors.text, marginBottom: spacing.md },
-    typeRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, marginBottom: spacing.md },
-    typeChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.full, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
-    typeChipSel: { backgroundColor: colors.primary, borderColor: colors.primary },
-    typeChipText: { color: colors.text, fontWeight: "600", fontSize: typography.sm },
-    typeChipTextSel: { color: "#fff" },
-    timeRow: { flexDirection: "row", gap: spacing.sm },
-    timeField: { flex: 1, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: borderRadius.lg, padding: spacing.md },
-    timeValue: { color: colors.text, fontWeight: "600", fontSize: typography.sm },
-    timeLabel: { marginTop: 4, color: colors.textSecondary, fontSize: typography.xs },
-    flagsRow: { flexDirection: "row", gap: spacing.sm },
-    flagChip: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.full, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
-    flagChipSel: { backgroundColor: colors.primary, borderColor: colors.primary },
-    flagChipText: { color: colors.text, fontWeight: "600" },
-    flagChipTextSel: { color: "#fff" },
-    btnRow: { flexDirection: "row", gap: 10, marginTop: spacing.lg },
-    cancelBtn: { flex: 1, paddingVertical: 14, borderRadius: borderRadius.lg, borderWidth: 1.5, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
-    saveBtn: { flex: 2, paddingVertical: 14, borderRadius: borderRadius.lg, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
-  }), [colors, spacing, typography, borderRadius]);
+  const s = useMemo(
+    () =>
+      StyleSheet.create({
+        overlay: {
+          flex: 1,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          justifyContent: "flex-end",
+        },
+        sheet: {
+          backgroundColor: colors.surface,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          padding: spacing.xl,
+          maxHeight: "92%",
+        },
+        handle: {
+          width: 40,
+          height: 4,
+          backgroundColor: colors.border,
+          alignSelf: "center",
+          marginBottom: spacing.lg,
+          borderRadius: 2,
+        },
+        title: {
+          fontSize: typography.lg,
+          fontWeight: "bold",
+          color: colors.text,
+          marginBottom: spacing.lg,
+        },
+        label: {
+          fontSize: typography.sm,
+          fontWeight: "600",
+          color: colors.textSecondary,
+          marginBottom: 6,
+        },
+        typeRow: {
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: spacing.sm,
+          marginBottom: spacing.md,
+        },
+        typeChip: {
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
+          borderRadius: borderRadius.full,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.background,
+        },
+        typeChipSel: {
+          backgroundColor: colors.primary,
+          borderColor: colors.primary,
+        },
+        typeChipText: {
+          color: colors.text,
+          fontWeight: "600",
+          fontSize: typography.sm,
+        },
+        typeChipTextSel: {
+          color: "#fff",
+        },
+        timeRow: {
+          flexDirection: "row",
+          gap: spacing.sm,
+          marginBottom: spacing.md,
+        },
+        timeField: {
+          flex: 1,
+          backgroundColor: colors.background,
+          borderWidth: 1,
+          borderColor: colors.border,
+          borderRadius: borderRadius.lg,
+          padding: spacing.md,
+        },
+        timeValue: {
+          color: colors.text,
+          fontWeight: "600",
+          fontSize: typography.sm,
+        },
+        timeLabel: {
+          marginTop: 4,
+          color: colors.textSecondary,
+          fontSize: typography.xs,
+        },
+        flagsRow: {
+          flexDirection: "row",
+          gap: spacing.sm,
+          marginBottom: spacing.md,
+        },
+        flagChip: {
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
+          borderRadius: borderRadius.full,
+          borderWidth: 1,
+          borderColor: colors.border,
+          backgroundColor: colors.background,
+        },
+        flagChipSel: {
+          backgroundColor: colors.primary,
+          borderColor: colors.primary,
+        },
+        flagChipText: {
+          color: colors.text,
+          fontWeight: "600",
+        },
+        flagChipTextSel: {
+          color: "#fff",
+        },
+        btnRow: {
+          flexDirection: "row",
+          gap: 10,
+          marginTop: spacing.lg,
+        },
+        cancelBtn: {
+          flex: 1,
+          paddingVertical: 14,
+          borderRadius: borderRadius.lg,
+          borderWidth: 1.5,
+          borderColor: colors.border,
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        saveBtn: {
+          flex: 2,
+          paddingVertical: 14,
+          borderRadius: borderRadius.lg,
+          backgroundColor: colors.primary,
+          alignItems: "center",
+          justifyContent: "center",
+        },
+      }),
+    [colors, spacing, typography, borderRadius],
+  );
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={s.overlay}>
-        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={onClose} />
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={s.overlay}
+      >
+        <TouchableOpacity
+          style={{ flex: 1 }}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+
         <View style={s.sheet}>
           <View style={s.handle} />
-          <Text style={s.title}>{event ? "Modifier événement" : "Nouvel événement"}</Text>
 
-          <Text style={s.label}>Titre</Text>
-          <Input value={title} onChangeText={setTitle} placeholder="Titre de l'événement" editable={!saving} />
+          <Text style={s.title}>
+            {event ? "Modifier événement" : "Nouvel événement"}
+          </Text>
 
-          <Text style={s.label}>Description</Text>
-          <Input value={description} onChangeText={setDescription} placeholder="Description (optionnel)" multiline editable={!saving} />
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Text style={s.label}>Titre</Text>
+            <Input
+              value={title}
+              onChangeText={setTitle}
+              placeholder="Titre de l'événement"
+              editable={!saving}
+            />
 
-          <Text style={s.label}>Type</Text>
-          <View style={s.typeRow}>
-            {EVENT_TYPES.map((opt) => {
-              const selected = type === opt.value;
-              return (
-                <TouchableOpacity key={opt.value} style={[s.typeChip, selected && s.typeChipSel]} onPress={() => setType(opt.value)} disabled={saving}>
-                  <Text style={[s.typeChipText, selected && s.typeChipTextSel]}>{opt.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+            <Text style={s.label}>Description</Text>
+            <Input
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Description optionnelle"
+              multiline
+              editable={!saving}
+            />
 
-          <Text style={s.label}>Horaires</Text>
-          <View style={s.timeRow}>
-            <TouchableOpacity style={s.timeField} onPress={() => { setPickerMode("date"); setShowStartPicker(true); }} disabled={saving}>
-              <Text style={s.timeValue}>{startDateTime.toLocaleString("fr-FR", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</Text>
-              <Text style={s.timeLabel}>Début</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.timeField} onPress={() => { setPickerMode("date"); setShowEndPicker(true); }} disabled={saving}>
-              <Text style={s.timeValue}>{endDateTime.toLocaleString("fr-FR", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</Text>
-              <Text style={s.timeLabel}>Fin</Text>
-            </TouchableOpacity>
-          </View>
+            <Text style={s.label}>Type</Text>
+            <View style={s.typeRow}>
+              {EVENT_TYPES.map((opt) => {
+                const selected = type === opt.value;
 
-          <View style={s.flagsRow}>
-            <TouchableOpacity style={[s.flagChip, isMandatory && s.flagChipSel]} onPress={() => setIsMandatory(!isMandatory)} disabled={saving}>
-              <Ionicons name={isMandatory ? "radio-button-on" : "radio-button-off"} size={16} color={isMandatory ? "#fff" : colors.textSecondary} />
-              <Text style={[s.flagChipText, isMandatory && s.flagChipTextSel]}>Obligatoire</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[s.flagChip, rsvpEnabled && s.flagChipSel]} onPress={() => setRsvpEnabled(!rsvpEnabled)} disabled={saving}>
-              <Ionicons name={rsvpEnabled ? "checkmark-circle" : "ellipse-outline"} size={16} color={rsvpEnabled ? "#fff" : colors.textSecondary} />
-              <Text style={[s.flagChipText, rsvpEnabled && s.flagChipTextSel]}>RSVP</Text>
-            </TouchableOpacity>
-          </View>
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[s.typeChip, selected && s.typeChipSel]}
+                    onPress={() => setType(opt.value)}
+                    disabled={saving}
+                  >
+                    <Text
+                      style={[s.typeChipText, selected && s.typeChipTextSel]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
-          <View style={s.btnRow}>
-            <TouchableOpacity style={s.cancelBtn} onPress={onClose} disabled={saving}>
-              <Text style={{ fontSize: typography.base, fontWeight: "600", color: colors.textSecondary }}>Annuler</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.saveBtn} onPress={handleSave} disabled={saving}>
-              {saving ? <ActivityIndicator color="#fff" /> : <Text style={{ fontSize: typography.base, fontWeight: "600", color: "#fff" }}>Enregistrer</Text>}
-            </TouchableOpacity>
-          </View>
+            <Text style={s.label}>Horaires</Text>
+            <View style={s.timeRow}>
+              <TouchableOpacity
+                style={s.timeField}
+                onPress={() => {
+                  setPickerTarget("start");
+                  setPickerMode("date");
+                }}
+                disabled={saving}
+              >
+                <Text style={s.timeValue}>
+                  {startDateTime.toLocaleString("fr-FR", {
+                    weekday: "short",
+                    day: "2-digit",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </Text>
+                <Text style={s.timeLabel}>Début</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={s.timeField}
+                onPress={() => {
+                  setPickerTarget("end");
+                  setPickerMode("date");
+                }}
+                disabled={saving}
+              >
+                <Text style={s.timeValue}>
+                  {endDateTime.toLocaleString("fr-FR", {
+                    weekday: "short",
+                    day: "2-digit",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </Text>
+                <Text style={s.timeLabel}>Fin</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={s.flagsRow}>
+              <TouchableOpacity
+                style={[s.flagChip, isMandatory && s.flagChipSel]}
+                onPress={() => setIsMandatory(!isMandatory)}
+                disabled={saving}
+              >
+                <Ionicons
+                  name={isMandatory ? "radio-button-on" : "radio-button-off"}
+                  size={16}
+                  color={isMandatory ? "#fff" : colors.textSecondary}
+                />
+                <Text
+                  style={[s.flagChipText, isMandatory && s.flagChipTextSel]}
+                >
+                  Obligatoire
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[s.flagChip, rsvpEnabled && s.flagChipSel]}
+                onPress={() => setRsvpEnabled(!rsvpEnabled)}
+                disabled={saving}
+              >
+                <Ionicons
+                  name={rsvpEnabled ? "checkmark-circle" : "ellipse-outline"}
+                  size={16}
+                  color={rsvpEnabled ? "#fff" : colors.textSecondary}
+                />
+                <Text
+                  style={[s.flagChipText, rsvpEnabled && s.flagChipTextSel]}
+                >
+                  RSVP
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={s.btnRow}>
+              <TouchableOpacity
+                style={s.cancelBtn}
+                onPress={onClose}
+                disabled={saving}
+              >
+                <Text
+                  style={{
+                    fontSize: typography.base,
+                    fontWeight: "600",
+                    color: colors.textSecondary,
+                  }}
+                >
+                  Annuler
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={s.saveBtn}
+                onPress={handleSave}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text
+                    style={{
+                      fontSize: typography.base,
+                      fontWeight: "600",
+                      color: "#fff",
+                    }}
+                  >
+                    Enregistrer
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
       </KeyboardAvoidingView>
 
-      {showStartPicker && (
+      {pickerTarget && (
         <DateTimePicker
-          value={startDateTime}
-          mode={Platform.OS === "ios" ? "datetime" : pickerMode}
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          onChange={(event, date) => {
-            // Simplified picker logic (full Android date->time in production)
-            if (date) setStartDateTime(date);
-            setShowStartPicker(false);
-          }}
-        />
-      )}
+          value={pickerTarget === "start" ? startDateTime : endDateTime}
+          mode={pickerMode}
+          display="default"
+          onChange={(event, selectedDate) => {
+            if (event.type === "dismissed") {
+              setPickerTarget(null);
+              setPickerMode("date");
+              return;
+            }
 
-      {showEndPicker && (
-        <DateTimePicker
-          value={endDateTime}
-          mode={Platform.OS === "ios" ? "datetime" : pickerMode}
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          onChange={(event, date) => {
-            if (date) setEndDateTime(date);
-            setShowEndPicker(false);
+            if (!selectedDate) {
+              setPickerTarget(null);
+              setPickerMode("date");
+              return;
+            }
+
+            if (pickerMode === "date") {
+              if (pickerTarget === "start") {
+                const updated = new Date(startDateTime);
+                updated.setFullYear(selectedDate.getFullYear());
+                updated.setMonth(selectedDate.getMonth());
+                updated.setDate(selectedDate.getDate());
+                setStartDateTime(updated);
+              } else {
+                const updated = new Date(endDateTime);
+                updated.setFullYear(selectedDate.getFullYear());
+                updated.setMonth(selectedDate.getMonth());
+                updated.setDate(selectedDate.getDate());
+                setEndDateTime(updated);
+              }
+
+              setPickerMode("time");
+              return;
+            }
+
+            if (pickerMode === "time") {
+              if (pickerTarget === "start") {
+                const updated = new Date(startDateTime);
+                updated.setHours(selectedDate.getHours());
+                updated.setMinutes(selectedDate.getMinutes());
+                setStartDateTime(updated);
+              } else {
+                const updated = new Date(endDateTime);
+                updated.setHours(selectedDate.getHours());
+                updated.setMinutes(selectedDate.getMinutes());
+                setEndDateTime(updated);
+              }
+
+              setPickerTarget(null);
+              setPickerMode("date");
+            }
           }}
         />
       )}
@@ -219,18 +506,21 @@ const EventManagementScreen = () => {
   const { colors, spacing, typography, borderRadius, shadows } = useTheme();
   const { user } = useAuth();
   const route = useRoute();
-  const role = user?.role;
 
-  const canManage = role === 2 || role === 3 || role === 4 || role === "manager" || role === "hr" || role === "admin";
-  if (!canManage) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
-        <Text style={{ color: colors.textSecondary, textAlign: "center" }}>Accès réservé aux managers, RH et admins</Text>
-      </View>
-    );
-  }
+  const styles = useMemo(
+    () => createStyles(colors, spacing, typography, borderRadius, shadows),
+    [colors, spacing, typography, borderRadius, shadows],
+  );
 
-  const styles = useMemo(() => createStyles(colors, spacing, typography, borderRadius, shadows), [colors, spacing, typography, borderRadius, shadows]);
+  const roleId = user?.roleId ?? user?.role;
+  const roleName = user?.roleName;
+  const normalizedRoleName = String(roleName ?? "")
+    .trim()
+    .toLowerCase();
+
+  const canManage =
+    [2, 3, 4].includes(roleId) ||
+    ["manager", "admin", "hr"].includes(normalizedRoleName);
 
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -246,14 +536,83 @@ const EventManagementScreen = () => {
     }
   }, [route.params?.openCreateModal]);
 
+  const normalizeEvent = (event) => ({
+    id: event?.id ?? event?.Id,
+    title: event?.title ?? event?.Title ?? "Événement",
+    description: event?.description ?? event?.Description ?? "",
+    type: event?.type ?? event?.Type ?? 7,
+    startDateTime: event?.startDateTime ?? event?.StartDateTime,
+    endDateTime: event?.endDateTime ?? event?.EndDateTime,
+    isMandatory: event?.isMandatory ?? event?.IsMandatory ?? false,
+    rsvpEnabled: event?.rsvpEnabled ?? event?.RsvpEnabled ?? true,
+  });
+
+  const formatDateForApi = (date) => date.toISOString().split("T")[0];
+
   const loadEvents = useCallback(async (isRefresh = false) => {
     try {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
-      const res = await eventService.getAllEvents();
-      setEvents(Array.isArray(res?.data) ? res.data : []);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const results = [];
+
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() + i);
+
+        const dateStr = formatDateForApi(d);
+        const res = await eventService.getEventsByDate(dateStr);
+
+        const list = Array.isArray(res?.data)
+          ? res.data
+          : Array.isArray(res?.data?.data)
+            ? res.data.data
+            : [];
+
+        results.push(...list);
+      }
+
+      const normalized = results
+        .map(normalizeEvent)
+        .filter((e) => e.id != null);
+
+      const uniq = [];
+      const seen = new Set();
+
+      for (const e of normalized) {
+        const key = String(e.id);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        uniq.push(e);
+      }
+
+      uniq.sort(
+        (a, b) =>
+          new Date(a.startDateTime).getTime() -
+          new Date(b.startDateTime).getTime(),
+      );
+
+      setEvents(uniq);
     } catch (e) {
-      Alert.alert("Erreur", "Chargement échoué");
+      console.log("EVENT MANAGEMENT LOAD ERROR:", {
+        message: e?.message,
+        status: e?.response?.status,
+        data: e?.response?.data,
+        url: e?.config?.url,
+        baseURL: e?.config?.baseURL,
+      });
+
+      Alert.alert(
+        "Erreur",
+        e?.response?.data?.message ||
+          e?.response?.data ||
+          e?.message ||
+          "Chargement échoué",
+      );
+
       setEvents([]);
     } finally {
       setLoading(false);
@@ -261,81 +620,144 @@ const EventManagementScreen = () => {
     }
   }, []);
 
-  useFocusEffect(useCallback(() => {
-    loadEvents();
-  }, [loadEvents]));
+  useFocusEffect(
+    useCallback(() => {
+      loadEvents();
+    }, [loadEvents]),
+  );
 
   const handleSave = async (id, data) => {
     try {
       if (id) {
         const res = await eventService.updateEvent(id, data);
-        setEvents(prev => prev.map(e => e.id === id ? res.data : e));
+        const updated = normalizeEvent(res?.data?.data ?? res?.data);
+
+        setEvents((prev) => prev.map((e) => (e.id === id ? updated : e)));
       } else {
         const res = await eventService.createEvent(data);
-        setEvents(prev => [res.data, ...prev]);
+        const created = normalizeEvent(res?.data?.data ?? res?.data);
+
+        setEvents((prev) => [created, ...prev]);
       }
     } catch (e) {
-      Alert.alert("Erreur", "Sauvegarde échouée");
+      console.log("EVENT SAVE ERROR:", {
+        message: e?.message,
+        status: e?.response?.status,
+        data: e?.response?.data,
+        url: e?.config?.url,
+        baseURL: e?.config?.baseURL,
+      });
+
+      Alert.alert(
+        "Erreur",
+        e?.response?.data?.message ||
+          e?.response?.data ||
+          e?.message ||
+          "Sauvegarde échouée",
+      );
+
+      throw e;
     }
   };
 
   const handleDelete = (eventId) => {
     Alert.alert("Confirmer", "Supprimer cet événement ?", [
-      { text: "Annuler" },
+      { text: "Annuler", style: "cancel" },
       {
         text: "Supprimer",
         style: "destructive",
         onPress: async () => {
           setDeletingId(eventId);
+
           try {
             await eventService.deleteEvent(eventId);
-            setEvents(prev => prev.filter(e => e.id !== eventId));
+            setEvents((prev) => prev.filter((e) => e.id !== eventId));
           } catch (e) {
             Alert.alert("Erreur", "Suppression échouée");
           } finally {
             setDeletingId(null);
           }
-        }
-      }
+        },
+      },
     ]);
   };
 
   const renderEventCard = (event) => {
     const isDeleting = deletingId === event.id;
-    const typeInfo = EVENT_TYPES.find(t => t.value === event.type) || EVENT_TYPES[6];
-    const isPast = new Date(event.endDateTime) < new Date();
+    const typeInfo =
+      EVENT_TYPES.find((t) => t.value === event.type) || EVENT_TYPES[6];
+
+    const isPast =
+      event.endDateTime && new Date(event.endDateTime) < new Date();
 
     return (
       <Card key={event.id} style={styles.card}>
         <View style={styles.cardHeader}>
-          <View style={[styles.typeBadge, { backgroundColor: `${typeInfo.color}20` }]}>
-            <Text style={[styles.typeBadgeText, { color: typeInfo.color }]}>{typeInfo.label}</Text>
-          </View>
-          <View style={styles.cardMain}>
-            <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
-            <Text style={styles.eventDates}>
-              {new Date(event.startDateTime).toLocaleString("fr-FR", { 
-                weekday: "short", day: "numeric", month: "short", 
-                hour: "2-digit", minute: "2-digit" 
-              })}
-              {" → "}
-              {new Date(event.endDateTime).toLocaleString("fr-FR", { 
-                hour: "2-digit", minute: "2-digit" 
-              })}
+          <View
+            style={[
+              styles.typeBadge,
+              { backgroundColor: `${typeInfo.color}20` },
+            ]}
+          >
+            <Text style={[styles.typeBadgeText, { color: typeInfo.color }]}>
+              {typeInfo.label}
             </Text>
           </View>
-          {isPast && <View style={styles.pastBadge}><Text style={styles.pastText}>Passé</Text></View>}
+
+          <View style={styles.cardMain}>
+            <Text style={styles.eventTitle} numberOfLines={1}>
+              {event.title}
+            </Text>
+
+            <Text style={styles.eventDates}>
+              {event.startDateTime
+                ? new Date(event.startDateTime).toLocaleString("fr-FR", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "Date inconnue"}
+              {" → "}
+              {event.endDateTime
+                ? new Date(event.endDateTime).toLocaleString("fr-FR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : ""}
+            </Text>
+          </View>
+
+          {isPast && (
+            <View style={styles.pastBadge}>
+              <Text style={styles.pastText}>Passé</Text>
+            </View>
+          )}
         </View>
 
-        {event.description && <Text style={styles.description} numberOfLines={2}>{event.description}</Text>}
+        {!!event.description && (
+          <Text style={styles.description} numberOfLines={2}>
+            {event.description}
+          </Text>
+        )}
 
         <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.editBtn} onPress={() => { setEditEvent(event); setModalVisible(true); }}>
+          <TouchableOpacity
+            style={styles.editBtn}
+            onPress={() => {
+              setEditEvent(event);
+              setModalVisible(true);
+            }}
+          >
             <Ionicons name="create-outline" size={16} color={colors.primary} />
-            <Text style={[styles.actionText, { color: colors.primary }]}>Modifier</Text>
+            <Text style={[styles.actionText, { color: colors.primary }]}>
+              Modifier
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.deleteBtn, isDeleting && styles.disabledBtn]} 
+
+          <TouchableOpacity
+            style={[styles.deleteBtn, isDeleting && styles.disabledBtn]}
             onPress={() => handleDelete(event.id)}
             disabled={isDeleting}
           >
@@ -344,7 +766,9 @@ const EventManagementScreen = () => {
             ) : (
               <>
                 <Ionicons name="trash-outline" size={16} color="#EF4444" />
-                <Text style={[styles.actionText, { color: "#EF4444" }]}>Supprimer</Text>
+                <Text style={[styles.actionText, { color: "#EF4444" }]}>
+                  Supprimer
+                </Text>
               </>
             )}
           </TouchableOpacity>
@@ -353,11 +777,30 @@ const EventManagementScreen = () => {
     );
   };
 
+  if (!canManage) {
+    return (
+      <View style={styles.accessDenied}>
+        <Text style={styles.accessDeniedText}>
+          Accès réservé aux managers, admins et RH.
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Gestion des événements ({events.length})</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => { setEditEvent(null); setModalVisible(true); }}>
+        <Text style={styles.headerTitle}>
+          Gestion des événements ({events.length})
+        </Text>
+
+        <TouchableOpacity
+          style={styles.addBtn}
+          onPress={() => {
+            setEditEvent(null);
+            setModalVisible(true);
+          }}
+        >
           <Ionicons name="add" size={20} color="#fff" />
           <Text style={styles.addBtnText}>Ajouter</Text>
         </TouchableOpacity>
@@ -366,16 +809,26 @@ const EventManagementScreen = () => {
       <ScrollView
         style={styles.list}
         contentContainerStyle={styles.listContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadEvents(true)} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadEvents(true)}
+            tintColor={colors.primary}
+          />
+        }
         showsVerticalScrollIndicator={false}
       >
         {loading ? (
-          <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+          <ActivityIndicator
+            size="large"
+            color={colors.primary}
+            style={styles.loader}
+          />
         ) : events.length === 0 ? (
-          <EmptyState 
-            iconName="calendar-outline" 
-            title="Aucun événement" 
-            subtitle="Créez le premier événement !" 
+          <EmptyState
+            iconName="calendar-outline"
+            title="Aucun événement"
+            subtitle="Créez le premier événement !"
           />
         ) : (
           events.map(renderEventCard)
@@ -396,52 +849,184 @@ const EventManagementScreen = () => {
   );
 };
 
-const createStyles = (colors, spacing, typography, borderRadius, shadows) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { 
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center", 
-    padding: spacing.lg, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border 
-  },
-  headerTitle: { fontSize: typography.lg, fontWeight: "bold", color: colors.text },
-  addBtn: { 
-    flexDirection: "row", alignItems: "center", gap: 6, 
-    backgroundColor: colors.primary, paddingHorizontal: 16, paddingVertical: 10, 
-    borderRadius: borderRadius.lg 
-  },
-  addBtnText: { color: "#fff", fontWeight: "600", fontSize: typography.sm },
-  list: { flex: 1 },
-  listContent: { padding: spacing.lg, paddingBottom: 60, gap: 12 },
-  loader: { marginTop: 40 },
-  card: { 
-    padding: spacing.lg, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: colors.border, 
-    backgroundColor: colors.surface, ...shadows.sm 
-  },
-  cardHeader: { flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: spacing.md },
-  typeBadge: { 
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: borderRadius.full, 
-    alignSelf: "flex-start", minWidth: 80, alignItems: "center" 
-  },
-  typeBadgeText: { fontSize: typography.xs, fontWeight: "600" },
-  cardMain: { flex: 1 },
-  eventTitle: { fontSize: typography.base, fontWeight: "bold", color: colors.text, marginBottom: 4 },
-  eventDates: { fontSize: typography.sm, color: colors.textSecondary },
-  pastBadge: { alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 4, backgroundColor: "#FEF3C7", borderRadius: borderRadius.full },
-  pastText: { fontSize: typography.xs, color: "#92400E", fontWeight: "600" },
-  description: { fontSize: typography.sm, color: colors.text, lineHeight: 20, marginBottom: spacing.md },
-  actionsRow: { flexDirection: "row", gap: 12, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
-  editBtn: { 
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, 
-    paddingVertical: 12, borderRadius: borderRadius.md, borderWidth: 1.5, borderColor: colors.primary, 
-    backgroundColor: `${colors.primary}15` 
-  },
-  deleteBtn: { 
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, 
-    paddingVertical: 12, borderRadius: borderRadius.md, borderWidth: 1.5, borderColor: "#EF4444", 
-    backgroundColor: "rgba(239,68,68,0.1)" 
-  },
-  disabledBtn: { opacity: 0.6 },
-  actionText: { fontSize: typography.sm, fontWeight: "600" },
-});
+const createStyles = (colors, spacing, typography, borderRadius, shadows) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+
+    accessDenied: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 20,
+      backgroundColor: colors.background,
+    },
+
+    accessDeniedText: {
+      color: colors.textSecondary,
+      textAlign: "center",
+      fontSize: typography.base,
+    },
+
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: spacing.lg,
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+
+    headerTitle: {
+      flex: 1,
+      fontSize: typography.lg,
+      fontWeight: "bold",
+      color: colors.text,
+      marginRight: spacing.md,
+    },
+
+    addBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: colors.primary,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: borderRadius.lg,
+    },
+
+    addBtnText: {
+      color: "#fff",
+      fontWeight: "600",
+      fontSize: typography.sm,
+    },
+
+    list: {
+      flex: 1,
+    },
+
+    listContent: {
+      padding: spacing.lg,
+      paddingBottom: 60,
+      gap: 12,
+    },
+
+    loader: {
+      marginTop: 40,
+    },
+
+    card: {
+      padding: spacing.lg,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      ...shadows.sm,
+    },
+
+    cardHeader: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 12,
+      marginBottom: spacing.md,
+    },
+
+    typeBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: borderRadius.full,
+      alignSelf: "flex-start",
+      minWidth: 80,
+      alignItems: "center",
+    },
+
+    typeBadgeText: {
+      fontSize: typography.xs,
+      fontWeight: "600",
+    },
+
+    cardMain: {
+      flex: 1,
+    },
+
+    eventTitle: {
+      fontSize: typography.base,
+      fontWeight: "bold",
+      color: colors.text,
+      marginBottom: 4,
+    },
+
+    eventDates: {
+      fontSize: typography.sm,
+      color: colors.textSecondary,
+    },
+
+    pastBadge: {
+      alignSelf: "flex-start",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      backgroundColor: "#FEF3C7",
+      borderRadius: borderRadius.full,
+    },
+
+    pastText: {
+      fontSize: typography.xs,
+      color: "#92400E",
+      fontWeight: "600",
+    },
+
+    description: {
+      fontSize: typography.sm,
+      color: colors.text,
+      lineHeight: 20,
+      marginBottom: spacing.md,
+    },
+
+    actionsRow: {
+      flexDirection: "row",
+      gap: 12,
+      paddingTop: spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+
+    editBtn: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      paddingVertical: 12,
+      borderRadius: borderRadius.md,
+      borderWidth: 1.5,
+      borderColor: colors.primary,
+      backgroundColor: `${colors.primary}15`,
+    },
+
+    deleteBtn: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      paddingVertical: 12,
+      borderRadius: borderRadius.md,
+      borderWidth: 1.5,
+      borderColor: "#EF4444",
+      backgroundColor: "rgba(239,68,68,0.1)",
+    },
+
+    disabledBtn: {
+      opacity: 0.6,
+    },
+
+    actionText: {
+      fontSize: typography.sm,
+      fontWeight: "600",
+    },
+  });
 
 export default EventManagementScreen;
-

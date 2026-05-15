@@ -14,8 +14,10 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { announcementService } from "../../services/api/announcementService";
@@ -27,6 +29,7 @@ const emptyForm = {
   publishTime: "",
   expiryDate: "",
   expiryTime: "",
+  imageFile: null,
 };
 
 const ManageAnnouncementsScreen = () => {
@@ -127,6 +130,7 @@ const ManageAnnouncementsScreen = () => {
       publishTime: publishAt ? formatTimePart(publishAt) : "",
       expiryDate: expiresAt ? formatDatePart(expiresAt) : "",
       expiryTime: expiresAt ? formatTimePart(expiresAt) : "",
+      imageFile: null,
     });
 
     setSchedulePublish(!!publishAt);
@@ -136,6 +140,48 @@ const ManageAnnouncementsScreen = () => {
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const pickImage = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permission.granted) {
+        Alert.alert(
+          "Permission refusée",
+          "Veuillez autoriser l'accès à la galerie.",
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        const asset = result.assets[0];
+
+        setForm((prev) => ({
+          ...prev,
+          imageFile: {
+            uri: asset.uri,
+            name: asset.fileName || "announcement.jpg",
+            type: asset.mimeType || "image/jpeg",
+          },
+        }));
+      }
+    } catch (error) {
+      Alert.alert("Erreur", "Impossible de sélectionner l'image.");
+    }
+  };
+
+  const removeImage = () => {
+    setForm((prev) => ({
+      ...prev,
+      imageFile: null,
+    }));
   };
 
   const openDatePicker = (field) => {
@@ -217,13 +263,36 @@ const ManageAnnouncementsScreen = () => {
         await announcementService.updateAnnouncement(editingId, payload);
         Alert.alert("Succès", "Annonce mise à jour avec succès.");
       } else {
-        await announcementService.createAnnouncement(payload);
+        const formData = new FormData();
+
+        formData.append("title", payload.title);
+        formData.append("content", payload.content);
+
+        if (payload.publishAt) {
+          formData.append("publishAt", payload.publishAt);
+        }
+
+        if (payload.expiresAt) {
+          formData.append("expiresAt", payload.expiresAt);
+        }
+
+        if (form.imageFile) {
+          formData.append("image", {
+            uri: form.imageFile.uri,
+            name: form.imageFile.name,
+            type: form.imageFile.type,
+          });
+        }
+
+        await announcementService.createAnnouncement(formData);
         Alert.alert("Succès", "Annonce créée avec succès.");
       }
 
       resetForm();
       await loadAnnouncements();
     } catch (error) {
+      console.log("SAVE ANNOUNCEMENT ERROR:", error?.response?.data || error);
+
       Alert.alert(
         "Erreur",
         error?.response?.data?.message ||
@@ -317,10 +386,19 @@ const ManageAnnouncementsScreen = () => {
     const content = item.content ?? item.Content ?? "";
     const publishAt = item.publishAt ?? item.PublishAt;
     const expiresAt = item.expiresAt ?? item.ExpiresAt;
+    const imageUrl = item.imageUrl ?? item.ImageUrl ?? null;
     const status = getStatus(publishAt, expiresAt);
 
     return (
       <View style={[styles.card, isExpired && styles.cardExpired]}>
+        {imageUrl ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.cardImage}
+            resizeMode="cover"
+          />
+        ) : null}
+
         <View style={styles.cardHeader}>
           <Text style={styles.cardTitle} numberOfLines={2}>
             {title}
@@ -497,291 +575,356 @@ const ManageAnnouncementsScreen = () => {
         presentationStyle="formSheet"
         onRequestClose={resetForm}
       >
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
           <View style={styles.sheetContainer}>
-          <View style={styles.sheetHandle} />
+            <View style={styles.sheetHandle} />
 
-          <View style={styles.sheetHeader}>
-            <View style={styles.sheetHeaderText}>
-              <Text style={styles.sheetTitle}>
-                {editingId ? "Modifier l'annonce" : "Nouvelle annonce"}
-              </Text>
+            <View style={styles.sheetHeader}>
+              <View style={styles.sheetHeaderText}>
+                <Text style={styles.sheetTitle}>
+                  {editingId ? "Modifier l'annonce" : "Nouvelle annonce"}
+                </Text>
 
-              <Text style={styles.sheetSubtitle}>
-                Visible immédiatement ou selon un calendrier
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.closeBtn}
-              onPress={resetForm}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="close"
-                size={18}
-                color={colors.textPrimary ?? colors.text}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            style={styles.sheetScroll}
-            contentContainerStyle={styles.sheetScrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={styles.fieldLabel}>Titre</Text>
-            <TextInput
-              value={form.title}
-              onChangeText={(t) => handleChange("title", t)}
-              placeholder="ex. Fermeture bureau vendredi"
-              placeholderTextColor={colors.textSecondary}
-              style={styles.fieldInput}
-            />
-
-            <Text style={styles.fieldLabel}>Contenu</Text>
-            <TextInput
-              value={form.content}
-              onChangeText={(t) => handleChange("content", t)}
-              placeholder="Rédigez votre annonce ici…"
-              placeholderTextColor={colors.textSecondary}
-              style={[styles.fieldInput, styles.fieldTextarea]}
-              multiline
-              textAlignVertical="top"
-            />
-
-            <TouchableOpacity
-              style={styles.toggleRow}
-              onPress={() => setSchedulePublish((v) => !v)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.toggleText}>
-                <Text style={styles.toggleTitle}>Planifier la publication</Text>
-                <Text style={styles.toggleSubtitle}>Rendre visible plus tard</Text>
+                <Text style={styles.sheetSubtitle}>
+                  Visible immédiatement ou selon un calendrier
+                </Text>
               </View>
-
-              <Switch
-                value={schedulePublish}
-                onValueChange={setSchedulePublish}
-                trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor="#fff"
-              />
-            </TouchableOpacity>
-
-            {schedulePublish && (
-              <View style={styles.dateSection}>
-                <View style={styles.dateGrid}>
-                  <View style={styles.dateGridItem}>
-                    <Text style={styles.fieldLabelSmall}>Date</Text>
-
-                    <TouchableOpacity
-                      style={styles.pickerInput}
-                      onPress={() => openDatePicker("publishDate")}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.pickerInputText,
-                          !form.publishDate && styles.pickerPlaceholder,
-                        ]}
-                      >
-                        {form.publishDate || "Choisir date"}
-                      </Text>
-
-                      <Ionicons
-                        name="calendar-outline"
-                        size={18}
-                        color={colors.textSecondary}
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.dateGridItem}>
-                    <Text style={styles.fieldLabelSmall}>Heure</Text>
-
-                    <TouchableOpacity
-                      style={styles.pickerInput}
-                      onPress={() => openTimePicker("publishTime")}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.pickerInputText,
-                          !form.publishTime && styles.pickerPlaceholder,
-                        ]}
-                      >
-                        {form.publishTime || "Choisir heure"}
-                      </Text>
-
-                      <Ionicons
-                        name="time-outline"
-                        size={18}
-                        color={colors.textSecondary}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {form.publishDate && form.publishTime ? (
-                  <View style={styles.previewChip}>
-                    <Ionicons name="time-outline" size={13} color="#1D4ED8" />
-                    <Text style={styles.previewChipText}>
-                      Publication le {formatPrettyDate(form.publishDate)} à{" "}
-                      {formatPrettyTime(form.publishTime)}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={[styles.toggleRow, { marginTop: spacing.sm }]}
-              onPress={() => setAutoExpire((v) => !v)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.toggleText}>
-                <Text style={styles.toggleTitle}>Suppression automatique</Text>
-                <Text style={styles.toggleSubtitle}>Masquer après une date</Text>
-              </View>
-
-              <Switch
-                value={autoExpire}
-                onValueChange={setAutoExpire}
-                trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor="#fff"
-              />
-            </TouchableOpacity>
-
-            {autoExpire && (
-              <View style={styles.dateSection}>
-                <View style={styles.dateGrid}>
-                  <View style={styles.dateGridItem}>
-                    <Text style={styles.fieldLabelSmall}>Date</Text>
-
-                    <TouchableOpacity
-                      style={styles.pickerInput}
-                      onPress={() => openDatePicker("expiryDate")}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.pickerInputText,
-                          !form.expiryDate && styles.pickerPlaceholder,
-                        ]}
-                      >
-                        {form.expiryDate || "Choisir date"}
-                      </Text>
-
-                      <Ionicons
-                        name="calendar-outline"
-                        size={18}
-                        color={colors.textSecondary}
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.dateGridItem}>
-                    <Text style={styles.fieldLabelSmall}>Heure</Text>
-
-                    <TouchableOpacity
-                      style={styles.pickerInput}
-                      onPress={() => openTimePicker("expiryTime")}
-                      activeOpacity={0.8}
-                    >
-                      <Text
-                        style={[
-                          styles.pickerInputText,
-                          !form.expiryTime && styles.pickerPlaceholder,
-                        ]}
-                      >
-                        {form.expiryTime || "Choisir heure"}
-                      </Text>
-
-                      <Ionicons
-                        name="time-outline"
-                        size={18}
-                        color={colors.textSecondary}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {form.expiryDate && form.expiryTime ? (
-                  <View style={[styles.previewChip, styles.previewChipExpiry]}>
-                    <Ionicons
-                      name="hourglass-outline"
-                      size={13}
-                      color="#B91C1C"
-                    />
-                    <Text
-                      style={[styles.previewChipText, { color: "#B91C1C" }]}
-                    >
-                      Expiration le {formatPrettyDate(form.expiryDate)} à{" "}
-                      {formatPrettyTime(form.expiryTime)}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-            )}
-
-            <View style={styles.formActions}>
-              <TouchableOpacity
-                style={[styles.btnPrimary, saving && styles.btnDisabled]}
-                onPress={saveAnnouncement}
-                disabled={saving}
-                activeOpacity={0.85}
-              >
-                {saving ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.btnPrimaryText}>
-                    {editingId ? "Mettre à jour" : "Publier l'annonce"}
-                  </Text>
-                )}
-              </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.btnSecondary}
+                style={styles.closeBtn}
                 onPress={resetForm}
-                disabled={saving}
-                activeOpacity={0.85}
+                activeOpacity={0.7}
               >
-                <Text style={styles.btnSecondaryText}>Annuler</Text>
+                <Ionicons
+                  name="close"
+                  size={18}
+                  color={colors.textPrimary ?? colors.text}
+                />
               </TouchableOpacity>
             </View>
-          </ScrollView>
 
-          {showDatePicker && (
-            <DateTimePicker
-              value={getPickerValue(form, pickerField)}
-              mode="date"
-              display="default"
-              onChange={(event, selectedDate) => {
-                setShowDatePicker(false);
+            <ScrollView
+              style={styles.sheetScroll}
+              contentContainerStyle={styles.sheetScrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <Text style={styles.fieldLabel}>Titre</Text>
+              <TextInput
+                value={form.title}
+                onChangeText={(t) => handleChange("title", t)}
+                placeholder="ex. Fermeture bureau vendredi"
+                placeholderTextColor={colors.textSecondary}
+                style={styles.fieldInput}
+              />
 
-                if (event.type === "dismissed" || !selectedDate) return;
+              <Text style={styles.fieldLabel}>Contenu</Text>
+              <TextInput
+                value={form.content}
+                onChangeText={(t) => handleChange("content", t)}
+                placeholder="Rédigez votre annonce ici…"
+                placeholderTextColor={colors.textSecondary}
+                style={[styles.fieldInput, styles.fieldTextarea]}
+                multiline
+                textAlignVertical="top"
+              />
 
-                handleChange(pickerField, formatDateFromDate(selectedDate));
-              }}
-            />
-          )}
+              {!editingId && (
+                <>
+                  <Text style={styles.fieldLabel}>Image optionnelle</Text>
 
-          {showTimePicker && (
-            <DateTimePicker
-              value={getPickerValue(form, pickerField)}
-              mode="time"
-              display="default"
-              onChange={(event, selectedTime) => {
-                setShowTimePicker(false);
+                  <TouchableOpacity
+                    style={styles.imagePickerButton}
+                    onPress={pickImage}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons
+                      name="image-outline"
+                      size={18}
+                      color={colors.primary}
+                    />
 
-                if (event.type === "dismissed" || !selectedTime) return;
+                    <Text style={styles.imagePickerText}>
+                      {form.imageFile ? "Changer l'image" : "Ajouter une image"}
+                    </Text>
+                  </TouchableOpacity>
 
-                handleChange(pickerField, formatTimeFromDate(selectedTime));
-              }}
-            />
-          )}
-        </View>
+                  {form.imageFile && (
+                    <View style={styles.previewImageWrap}>
+                      <Image
+                        source={{ uri: form.imageFile.uri }}
+                        style={styles.previewImage}
+                        resizeMode="cover"
+                      />
+
+                      <TouchableOpacity
+                        style={styles.removeImageButton}
+                        onPress={removeImage}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="close" size={16} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </>
+              )}
+
+              {editingId && (
+                <View style={styles.editImageNotice}>
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                  <Text style={styles.editImageNoticeText}>
+                    La modification de l'image sera ajoutée plus tard. Cette
+                    version garde l'image actuelle.
+                  </Text>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={styles.toggleRow}
+                onPress={() => setSchedulePublish((v) => !v)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.toggleText}>
+                  <Text style={styles.toggleTitle}>
+                    Planifier la publication
+                  </Text>
+                  <Text style={styles.toggleSubtitle}>
+                    Rendre visible plus tard
+                  </Text>
+                </View>
+
+                <Switch
+                  value={schedulePublish}
+                  onValueChange={setSchedulePublish}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor="#fff"
+                />
+              </TouchableOpacity>
+
+              {schedulePublish && (
+                <View style={styles.dateSection}>
+                  <View style={styles.dateGrid}>
+                    <View style={styles.dateGridItem}>
+                      <Text style={styles.fieldLabelSmall}>Date</Text>
+
+                      <TouchableOpacity
+                        style={styles.pickerInput}
+                        onPress={() => openDatePicker("publishDate")}
+                        activeOpacity={0.8}
+                      >
+                        <Text
+                          style={[
+                            styles.pickerInputText,
+                            !form.publishDate && styles.pickerPlaceholder,
+                          ]}
+                        >
+                          {form.publishDate || "Choisir date"}
+                        </Text>
+
+                        <Ionicons
+                          name="calendar-outline"
+                          size={18}
+                          color={colors.textSecondary}
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.dateGridItem}>
+                      <Text style={styles.fieldLabelSmall}>Heure</Text>
+
+                      <TouchableOpacity
+                        style={styles.pickerInput}
+                        onPress={() => openTimePicker("publishTime")}
+                        activeOpacity={0.8}
+                      >
+                        <Text
+                          style={[
+                            styles.pickerInputText,
+                            !form.publishTime && styles.pickerPlaceholder,
+                          ]}
+                        >
+                          {form.publishTime || "Choisir heure"}
+                        </Text>
+
+                        <Ionicons
+                          name="time-outline"
+                          size={18}
+                          color={colors.textSecondary}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {form.publishDate && form.publishTime ? (
+                    <View style={styles.previewChip}>
+                      <Ionicons name="time-outline" size={13} color="#1D4ED8" />
+                      <Text style={styles.previewChipText}>
+                        Publication le {formatPrettyDate(form.publishDate)} à{" "}
+                        {formatPrettyTime(form.publishTime)}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={[styles.toggleRow, { marginTop: spacing.sm }]}
+                onPress={() => setAutoExpire((v) => !v)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.toggleText}>
+                  <Text style={styles.toggleTitle}>
+                    Suppression automatique
+                  </Text>
+                  <Text style={styles.toggleSubtitle}>
+                    Masquer après une date
+                  </Text>
+                </View>
+
+                <Switch
+                  value={autoExpire}
+                  onValueChange={setAutoExpire}
+                  trackColor={{ false: colors.border, true: colors.primary }}
+                  thumbColor="#fff"
+                />
+              </TouchableOpacity>
+
+              {autoExpire && (
+                <View style={styles.dateSection}>
+                  <View style={styles.dateGrid}>
+                    <View style={styles.dateGridItem}>
+                      <Text style={styles.fieldLabelSmall}>Date</Text>
+
+                      <TouchableOpacity
+                        style={styles.pickerInput}
+                        onPress={() => openDatePicker("expiryDate")}
+                        activeOpacity={0.8}
+                      >
+                        <Text
+                          style={[
+                            styles.pickerInputText,
+                            !form.expiryDate && styles.pickerPlaceholder,
+                          ]}
+                        >
+                          {form.expiryDate || "Choisir date"}
+                        </Text>
+
+                        <Ionicons
+                          name="calendar-outline"
+                          size={18}
+                          color={colors.textSecondary}
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.dateGridItem}>
+                      <Text style={styles.fieldLabelSmall}>Heure</Text>
+
+                      <TouchableOpacity
+                        style={styles.pickerInput}
+                        onPress={() => openTimePicker("expiryTime")}
+                        activeOpacity={0.8}
+                      >
+                        <Text
+                          style={[
+                            styles.pickerInputText,
+                            !form.expiryTime && styles.pickerPlaceholder,
+                          ]}
+                        >
+                          {form.expiryTime || "Choisir heure"}
+                        </Text>
+
+                        <Ionicons
+                          name="time-outline"
+                          size={18}
+                          color={colors.textSecondary}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {form.expiryDate && form.expiryTime ? (
+                    <View style={[styles.previewChip, styles.previewChipExpiry]}>
+                      <Ionicons
+                        name="hourglass-outline"
+                        size={13}
+                        color="#B91C1C"
+                      />
+                      <Text
+                        style={[styles.previewChipText, { color: "#B91C1C" }]}
+                      >
+                        Expiration le {formatPrettyDate(form.expiryDate)} à{" "}
+                        {formatPrettyTime(form.expiryTime)}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              )}
+
+              <View style={styles.formActions}>
+                <TouchableOpacity
+                  style={[styles.btnPrimary, saving && styles.btnDisabled]}
+                  onPress={saveAnnouncement}
+                  disabled={saving}
+                  activeOpacity={0.85}
+                >
+                  {saving ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.btnPrimaryText}>
+                      {editingId ? "Mettre à jour" : "Publier l'annonce"}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.btnSecondary}
+                  onPress={resetForm}
+                  disabled={saving}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.btnSecondaryText}>Annuler</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={getPickerValue(form, pickerField)}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowDatePicker(false);
+
+                  if (event.type === "dismissed" || !selectedDate) return;
+
+                  handleChange(pickerField, formatDateFromDate(selectedDate));
+                }}
+              />
+            )}
+
+            {showTimePicker && (
+              <DateTimePicker
+                value={getPickerValue(form, pickerField)}
+                mode="time"
+                display="default"
+                onChange={(event, selectedTime) => {
+                  setShowTimePicker(false);
+
+                  if (event.type === "dismissed" || !selectedTime) return;
+
+                  handleChange(pickerField, formatTimeFromDate(selectedTime));
+                }}
+              />
+            )}
+          </View>
         </KeyboardAvoidingView>
       </Modal>
     </View>
@@ -1030,6 +1173,14 @@ const createStyles = (colors, spacing, typography, borderRadius, shadows) =>
 
     cardExpired: {
       opacity: 0.65,
+    },
+
+    cardImage: {
+      width: "100%",
+      height: 160,
+      borderRadius: 18,
+      marginBottom: 12,
+      backgroundColor: colors.background,
     },
 
     cardHeader: {
@@ -1300,6 +1451,68 @@ const createStyles = (colors, spacing, typography, borderRadius, shadows) =>
     fieldTextarea: {
       minHeight: 110,
       paddingTop: 13,
+    },
+
+    imagePickerButton: {
+      marginTop: 8,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 16,
+      paddingVertical: 14,
+      paddingHorizontal: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+    },
+
+    imagePickerText: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.primary,
+    },
+
+    previewImageWrap: {
+      marginTop: 12,
+      position: "relative",
+    },
+
+    previewImage: {
+      width: "100%",
+      height: 200,
+      borderRadius: 18,
+      backgroundColor: colors.surface,
+    },
+
+    removeImageButton: {
+      position: "absolute",
+      top: 10,
+      right: 10,
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: "rgba(0,0,0,0.65)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    editImageNotice: {
+      flexDirection: "row",
+      gap: 8,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 14,
+      padding: 12,
+      marginTop: 16,
+    },
+
+    editImageNoticeText: {
+      flex: 1,
+      fontSize: 12,
+      color: colors.textSecondary,
+      lineHeight: 17,
     },
 
     toggleRow: {

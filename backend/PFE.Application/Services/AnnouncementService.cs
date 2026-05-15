@@ -8,10 +8,14 @@ namespace PFE.Application.Services;
 public class AnnouncementService : IAnnouncementService
 {
     private readonly IApplicationDbContext _context;
+    private readonly CloudinaryService _cloudinaryService;
 
-    public AnnouncementService(IApplicationDbContext context)
+    public AnnouncementService(
+        IApplicationDbContext context,
+        CloudinaryService cloudinaryService)
     {
         _context = context;
+        _cloudinaryService = cloudinaryService;
     }
 
     public async Task<AnnouncementDto> CreateAsync(int userId, CreateAnnouncementDto dto)
@@ -21,12 +25,15 @@ public class AnnouncementService : IAnnouncementService
             throw new Exception("Expiry time must be after publish time.");
         }
 
+        var imageUrl = await _cloudinaryService.UploadImageAsync(dto.Image);
+
         var announcement = new Announcement
         {
             Title = dto.Title,
             Content = dto.Content,
             PublishAt = dto.PublishAt,
             ExpiresAt = dto.ExpiresAt,
+            ImageUrl = imageUrl,
             CreatedById = userId,
             CreatedAt = DateTime.UtcNow,
             IsActive = true
@@ -128,6 +135,7 @@ public class AnnouncementService : IAnnouncementService
             Id = a.Id,
             Title = a.Title,
             Content = a.Content,
+            ImageUrl = a.ImageUrl,
             CreatedAt = a.CreatedAt,
             UpdatedAt = a.UpdatedAt,
             PublishAt = a.PublishAt,

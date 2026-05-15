@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -43,8 +43,7 @@ namespace PFE.Infrastructure.Migrations
                 {
                     { 1, "Regular employee", "Employee" },
                     { 2, "Department manager", "Manager" },
-                    { 3, "System administrator", "Admin" },
-                    { 4, "Human resources", "HR" }
+                    { 3, "System administrator", "Admin" }
                 });
 
             migrationBuilder.AddForeignKey(

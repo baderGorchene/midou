@@ -117,7 +117,7 @@ public class LeaveService : ILeaveService
 
         if (reviewer.Role.Name == "Manager")
         {
-            query = query.Where(l => l.AssignedManagerId == reviewerId);
+            query = query.Where(l => l.User.DepartmentId == reviewer.DepartmentId);
         }
         else if (reviewer.Role.Name != "Admin")
         {

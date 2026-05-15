@@ -14,4 +14,6 @@ public class AnnouncementDto
 
     public int CreatedById { get; set; }
     public string CreatedByName { get; set; } = string.Empty;
+
+    public string? ImageUrl { get; set; }
 }

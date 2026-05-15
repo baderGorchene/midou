@@ -47,7 +47,6 @@ public class SeatReservationService : ISeatReservationService
     {
         var dateOnly = dto.Date.Date;
 
-        // ✅ Tunisia "today" validation (Africa/Tunis)
         var tunisToday = GetTunisiaNow().Date;
 
         // Allow ONLY today's date (Tunisia)
@@ -161,16 +160,14 @@ public class SeatReservationService : ISeatReservationService
             return false; // Reservation not found
         }
 
-        // Authorization: Only owner or Admin can cancel
         if (reservation.UserId != userId && userRole != "Admin")
         {
             return false; // Unauthorized
         }
 
-        // Only allow cancellation of active reservations
         if (reservation.Status != SeatReservationStatus.Active)
         {
-            return false; // Reservation is not active
+            return false;
         }
 
         // Update status to Cancelled
@@ -189,23 +186,14 @@ public class SeatReservationService : ISeatReservationService
         return true;
     }
 
-    // ✅ Cross-platform Tunisia time helper
     private static DateTime GetTunisiaNow()
     {
-        // Linux/macOS typically support "Africa/Tunis"
-        // Windows may require a Windows timezone ID.
-        // We'll try a few known IDs safely.
-
         TimeZoneInfo tz;
 
-        // Try IANA first
         if (TryFindTimeZone("Africa/Tunis", out tz))
         {
             return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
         }
-
-        // Windows fallback candidates (depends on the OS install)
-        // If none exist, fall back to server local time.
         var windowsCandidates = new[]
         {
             "Tunisia Standard Time",
@@ -289,8 +277,8 @@ public class SeatReservationService : ISeatReservationService
 
         var reservations = await _context.SeatReservations
             .AsNoTracking()
-            .Where(r => r.UserId == userId && 
-                       r.Date >= startDate.Date && 
+            .Where(r => r.UserId == userId &&
+                       r.Date >= startDate.Date &&
                        r.Date <= endDate.Date &&
                        r.Status != SeatReservationStatus.Cancelled)
             .Select(r => new MonthCheckInDto

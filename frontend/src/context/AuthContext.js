@@ -20,7 +20,6 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // ✅ global refresh trigger
   const [refreshFlag, setRefreshFlag] = useState(0);
 
   const triggerRefresh = () => {
@@ -91,8 +90,6 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     signIn,
     signOut,
-
-    // ✅ add these
     refreshFlag,
     triggerRefresh,
   };

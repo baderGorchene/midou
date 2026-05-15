@@ -43,6 +43,9 @@ namespace PFE.Infrastructure.Migrations
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -736,12 +739,6 @@ namespace PFE.Infrastructure.Migrations
                             Id = 3,
                             Description = "System administrator",
                             Name = "Admin"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Description = "Human resources",
-                            Name = "HR"
                         });
                 });
 
@@ -1014,6 +1011,10 @@ namespace PFE.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime?>("RejectedAt")
                         .HasColumnType("datetime2");

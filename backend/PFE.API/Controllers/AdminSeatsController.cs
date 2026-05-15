@@ -9,7 +9,7 @@ namespace PFE.API.Controllers;
 
 [ApiController]
 [Route("api/admin/seats")]
-[Authorize(Roles = "Admin,HR")]
+[Authorize(Roles = "Admin")]
 public class AdminSeatsController : ControllerBase
 {
     private readonly ISeatService _seatService;

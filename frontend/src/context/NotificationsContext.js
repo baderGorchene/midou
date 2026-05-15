@@ -32,7 +32,6 @@ export function NotificationsProvider({ children }) {
     }
   }, []);
 
-  // Load notifications once when provider mounts
   useEffect(() => {
     refreshNotifications();
   }, [refreshNotifications]);

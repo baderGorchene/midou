@@ -8,7 +8,7 @@ namespace PFE.API.Controllers;
 
 [ApiController]
 [Route("api/admin/layout")]
-[Authorize(Roles = "Admin,HR")]
+[Authorize(Roles = "Admin")]
 public class AdminLayoutController : ControllerBase
 {
     private readonly IOfficeLayoutService _layoutService;

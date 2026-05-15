@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   useFonts,
   Inter_400Regular,
@@ -49,14 +49,16 @@ import DepartmentChannelScreen from "./src/screens/DepartmentChannelScreen";
 import ApprovalsScreen from "./src/screens/approvals/ApprovalsScreen";
 import UserManagementScreen from "./src/screens/admin/UserManagementScreen";
 import SeatManagementScreen from "./src/screens/admin/SeatManagementScreen";
-import AdminOfficeLayoutScreen from "./src/screens/admin/AdminOfficeLayoutScreen";
 import SplashScreen from "./src/screens/SplashScreen";
 import { DepartmentChannelProvider } from "./src/context/DepartmentChannelContext";
 import { useDepartmentChannel } from "./src/context/DepartmentChannelContext";
 import CustomBottomTabBar from "./src/components/CustomBottomTabBar";
 import AnimatedTabScreen from "./src/components/AnimatedTabScreen";
 import RoomManagementScreen from "./src/screens/admin/RoomManagementScreen";
+import AdminStatisticsScreen from "./src/screens/admin/AdminStatisticsScreen";
+import SwipeTabsPager from "./src/components/SwipeTabsPager";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -112,7 +114,16 @@ function HomeTabs() {
 
   const canReviewRequests = isAdmin || isHR;
 
+  const visibleSwipeRoutes = useMemo(() => {
+    const base = ["Home"];
+    if (!isAdmin) base.push("Channel");
+    if (isAdmin) base.push("Announcements");
+    if (canReviewRequests) base.push("Approvals");
+    return base;
+  }, [isAdmin, canReviewRequests]);
+
   return (
+
     <Tab.Navigator
       tabBar={(props) => <CustomBottomTabBar {...props} />}
       screenOptions={{
@@ -137,12 +148,35 @@ function HomeTabs() {
       }}
     >
       <Tab.Screen name="Home" options={{ title: "Accueil" }}>
-        {() => (
+        {({ navigation }) => (
           <AnimatedTabScreen>
-            <DashboardScreen />
+            <SwipeTabsPager
+              routes={visibleSwipeRoutes}
+              activeRouteName={
+                navigation.getState().routes[navigation.getState().index].name
+              }
+              onChangeRouteName={(nextRouteName) =>
+                navigation.navigate(nextRouteName)
+              }
+              renderRoute={(routeName) => {
+                switch (routeName) {
+                  case "Home":
+                    return <DashboardScreen />;
+                  case "Channel":
+                    return <DepartmentChannelScreen />;
+                  case "Announcements":
+                    return <ManageAnnouncementsScreen />;
+                  case "Approvals":
+                    return <ApprovalsScreen />;
+                  default:
+                    return <DashboardScreen />;
+                }
+              }}
+            />
           </AnimatedTabScreen>
         )}
       </Tab.Screen>
+
 
       {!isAdmin && (
         <Tab.Screen name="Channel" options={{ title: "Canal" }}>
@@ -169,6 +203,16 @@ function HomeTabs() {
           {() => (
             <AnimatedTabScreen>
               <ApprovalsScreen />
+            </AnimatedTabScreen>
+          )}
+        </Tab.Screen>
+      )}
+
+      {isAdmin && (
+        <Tab.Screen name="Statistics" options={{ title: "Statistiques" }}>
+          {() => (
+            <AnimatedTabScreen>
+              <AdminStatisticsScreen />
             </AnimatedTabScreen>
           )}
         </Tab.Screen>
@@ -324,12 +368,6 @@ function AppNavigator() {
                 name="SeatManagement"
                 component={SeatManagementScreen}
                 options={{ title: "Tables et Sièges" }}
-              />
-
-              <Stack.Screen
-                name="AdminOfficeLayout"
-                component={AdminOfficeLayoutScreen}
-                options={{ title: "Plan Interactif" }}
               />
             </>
           )}

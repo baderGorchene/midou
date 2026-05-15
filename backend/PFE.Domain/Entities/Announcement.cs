@@ -16,4 +16,6 @@ public class Announcement
 
     public int CreatedById { get; set; }
     public User CreatedBy { get; set; } = null!;
+
+    public string? ImageUrl { get; set; }
 }

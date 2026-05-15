@@ -54,13 +54,8 @@ const getRoleFlags = (role) => {
   return {
     role: normalized,
     isAdmin: normalized === "admin" || normalized === 3,
-    isHr: normalized === "hr" || normalized === 4,
     isManager: normalized === "manager" || normalized === 2,
-    canReviewLeave:
-      normalized === "admin" ||
-      normalized === "hr" ||
-      normalized === 3 ||
-      normalized === 4,
+    canReviewLeave: normalized === "admin" || normalized === 3,
   };
 };
 
@@ -353,15 +348,14 @@ const DashboardScreen = () => {
     [colors, spacing, typography, borderRadius, shadows],
   );
 
-  const { isAdmin, isHr, isManager, canReviewLeave } = useMemo(
+  const { isAdmin, isManager, canReviewLeave } = useMemo(
     () => getRoleFlags(user?.roleName ?? user?.roleId),
     [user?.roleName, user?.roleId],
   );
 
   const showEmployeeDashboard = !isAdmin;
-  const canManageRooms = isManager || isHr;
 
-  const [upcomingEvent, setUpcomingEvent] = useState(null);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [loadingEvent, setLoadingEvent] = useState(true);
 
   const [refreshing, setRefreshing] = useState(false);
@@ -403,12 +397,12 @@ const DashboardScreen = () => {
     });
   }, [navigation]);
 
-  const fetchUpcomingEvent = useCallback(async () => {
+  const fetchUpcomingEvents = useCallback(async () => {
     setLoadingEvent(true);
 
     try {
       const today = new Date();
-      let foundEvent = null;
+      const result = [];
 
       for (let i = 0; i < 7; i++) {
         const checkDate = new Date(today);
@@ -424,16 +418,33 @@ const DashboardScreen = () => {
             ? response.data.data
             : [];
 
-        if (events.length > 0) {
-          foundEvent = events[0];
-          break;
+        for (const ev of events) {
+          // avoid duplicates (in case API returns overlapping data)
+          if (ev?.id == null) {
+            result.push(ev);
+          } else {
+            const alreadyExists = result.some((x) => x?.id === ev.id);
+            if (!alreadyExists) result.push(ev);
+          }
         }
       }
 
-      setUpcomingEvent(foundEvent);
+      // sort by date ascending
+      result.sort((a, b) => {
+        const da = new Date(
+          a?.date ?? a?.Date ?? a?.startDateTime ?? a?.StartDateTime,
+        ).getTime();
+        const db = new Date(
+          b?.date ?? b?.Date ?? b?.startDateTime ?? b?.StartDateTime,
+        ).getTime();
+        return (Number.isNaN(da) ? 0 : da) - (Number.isNaN(db) ? 0 : db);
+      });
+
+      // cap display size
+      setUpcomingEvents(result.slice(0, 5));
     } catch (error) {
-      console.log("Upcoming event error", error);
-      setUpcomingEvent(null);
+      console.log("Upcoming events error", error);
+      setUpcomingEvents([]);
     } finally {
       setLoadingEvent(false);
     }
@@ -575,7 +586,7 @@ const DashboardScreen = () => {
       fetchPendingUserApprovals(),
     ];
 
-    const employeeCalls = [fetchUpcomingEvent(), fetchAnnouncements()];
+    const employeeCalls = [fetchUpcomingEvents(), fetchAnnouncements()];
 
     if (!isAdmin) {
       employeeCalls.push(
@@ -590,7 +601,7 @@ const DashboardScreen = () => {
     showEmployeeDashboard,
     fetchMyReservation,
     fetchLeaveBalance,
-    fetchUpcomingEvent,
+    fetchUpcomingEvents,
     fetchPendingLeaveApprovals,
     fetchPendingUserApprovals,
     fetchAnnouncements,
@@ -696,7 +707,8 @@ const DashboardScreen = () => {
   const announcementContent =
     firstAnnouncement?.content ?? firstAnnouncement?.Content ?? "";
 
-  const { day: eventDay, month: eventMonth } = getEventDateParts(upcomingEvent);
+  const firstUpcoming = upcomingEvents?.[0] ?? null;
+  const { day: eventDay, month: eventMonth } = getEventDateParts(firstUpcoming);
 
   return (
     <ScrollView
@@ -942,7 +954,28 @@ const DashboardScreen = () => {
               )}
             </Card>
 
-            {canManageRooms && (
+            <SectionHeader title="Espace de travail" styles={styles} />
+            <Card style={styles.card}>
+              <CardHeader
+                icon="desktop-outline"
+                title="Réserver un bureau"
+                styles={styles}
+                colors={colors}
+              />
+              <Text style={styles.cardEmptyTitle}>Gérez vos présences</Text>
+              <Text style={styles.cardBody}>
+                Consultez les disponibilités et réservez un bureau pour votre
+                journée de travail en présentiel.
+              </Text>
+              <Button
+                title="Réserver un bureau"
+                variant="primary"
+                onPress={() => navigation.navigate("Desk")}
+                style={styles.cardBtn}
+              />
+            </Card>
+
+            {isManager && (
               <Card style={styles.card}>
                 <CardHeader
                   icon="library-outline"
@@ -950,10 +983,10 @@ const DashboardScreen = () => {
                   styles={styles}
                   colors={colors}
                 />
-                <Text style={styles.cardEmptyTitle}>Gérez les salles</Text>
+                <Text style={styles.cardEmptyTitle}>Réunions et salles</Text>
                 <Text style={styles.cardBody}>
                   Consultez les disponibilités et soumettez une demande de
-                  réservation.
+                  réservation de salle.
                 </Text>
                 <Button
                   title="Réserver une salle"
@@ -997,18 +1030,75 @@ const DashboardScreen = () => {
                   Aucune annonce disponible pour le moment.
                 </Text>
               )}
-
-              {isHr && (
-                <Button
-                  title="Gérer les annonces"
-                  variant="primary"
-                  onPress={() => navigation.navigate("ManageAnnouncements")}
-                  style={styles.cardBtn}
-                />
-              )}
             </Card>
           </>
         )}
+
+        <SectionHeader title="Prochains événements" styles={styles} />
+
+        <Card style={styles.card}>
+          <CardHeader
+            icon="calendar-clear-outline"
+            title="Agenda"
+            styles={styles}
+            colors={colors}
+          />
+
+          {loadingEvent ? (
+            <View style={styles.inlineLoader}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={styles.loaderText}>Chargement du calendrier…</Text>
+            </View>
+          ) : upcomingEvents?.length > 0 ? (
+            <View>
+              {upcomingEvents.map((ev, idx) => {
+                const { day, month } = getEventDateParts(ev);
+
+                return (
+                  <View
+                    key={ev?.id ?? `${day}-${month}-${idx}`}
+                    style={styles.eventRow}
+                  >
+                    <View style={styles.eventDateBadge}>
+                      <Text style={styles.eventDateDay}>{day}</Text>
+                      <Text style={styles.eventDateMon}>{month}</Text>
+                    </View>
+
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.eventTitle} numberOfLines={2}>
+                        {ev?.title ?? ev?.Title ?? "Événement sans titre"}
+                      </Text>
+
+                      <Text style={styles.eventTime}>
+                        {formatEventCompact(ev)}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <>
+              <Text style={styles.cardEmptyTitle}>Aucun événement prévu</Text>
+              <Text style={styles.cardBody}>
+                Rien dans les 7 prochains jours.
+              </Text>
+            </>
+          )}
+
+          <View style={styles.divider} />
+
+          <Button
+            title={isAdmin ? "Créer un événement" : "Voir les événements"}
+            variant={upcomingEvents?.length > 0 ? "secondary" : "primary"}
+            onPress={() =>
+              navigation.navigate("EventManagement", {
+                openCreateModal: true,
+              })
+            }
+            style={styles.cardBtn}
+          />
+        </Card>
 
         {isAdmin && (
           <>
@@ -1037,6 +1127,16 @@ const DashboardScreen = () => {
             </View>
 
             <AdminActionCard
+              icon="library-outline"
+              title="Réserver une salle"
+              description="Consultez les créneaux disponibles et soumettez une demande de réservation pour une réunion."
+              buttonTitle="Réserver une salle"
+              onPress={() => navigation.navigate("Rooms")}
+              styles={styles}
+              colors={colors}
+            />
+
+            <AdminActionCard
               icon="people-outline"
               title="Gestion des utilisateurs"
               description="Consultez les utilisateurs, modifiez leurs informations, attribuez des rôles ou supprimez des comptes."
@@ -1055,66 +1155,6 @@ const DashboardScreen = () => {
               styles={styles}
               colors={colors}
             />
-
-            <SectionHeader title="Prochain événement" styles={styles} />
-
-            <Card style={styles.card}>
-              <CardHeader
-                icon="calendar-clear-outline"
-                title="Agenda"
-                styles={styles}
-                colors={colors}
-              />
-
-              {loadingEvent ? (
-                <View style={styles.inlineLoader}>
-                  <ActivityIndicator size="small" color={colors.primary} />
-                  <Text style={styles.loaderText}>
-                    Chargement du calendrier…
-                  </Text>
-                </View>
-              ) : upcomingEvent ? (
-                <View style={styles.eventRow}>
-                  <View style={styles.eventDateBadge}>
-                    <Text style={styles.eventDateDay}>{eventDay}</Text>
-                    <Text style={styles.eventDateMon}>{eventMonth}</Text>
-                  </View>
-
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.eventTitle} numberOfLines={2}>
-                      {upcomingEvent?.title ??
-                        upcomingEvent?.Title ??
-                        "Événement sans titre"}
-                    </Text>
-                    <Text style={styles.eventTime}>
-                      {formatEventCompact(upcomingEvent)}
-                    </Text>
-                  </View>
-                </View>
-              ) : (
-                <>
-                  <Text style={styles.cardEmptyTitle}>
-                    Aucun événement prévu
-                  </Text>
-                  <Text style={styles.cardBody}>
-                    Rien dans les 7 prochains jours.
-                  </Text>
-                </>
-              )}
-
-              <View style={styles.divider} />
-
-              <Button
-                title={isAdmin ? "Créer un événement" : "Voir les événements"}
-                variant={upcomingEvent ? "secondary" : "primary"}
-                onPress={() =>
-                  navigation.navigate("Events", {
-                    openCreateModal: isAdmin,
-                  })
-                }
-                style={styles.cardBtn}
-              />
-            </Card>
 
             <AdminActionCard
               icon="business-outline"

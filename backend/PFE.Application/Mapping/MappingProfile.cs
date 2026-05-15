@@ -120,7 +120,6 @@ public class MappingProfile : Profile
         CreateMap<RoomReservation, RoomReservationDto>()
             .ForMember(dest => dest.RoomName, opt => opt.MapFrom(src => src.Room != null ? src.Room.Name : ""))
             .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.FullName : ""));
-        // Status maps automatically (enum → enum), no override needed ✅
         CreateMap<RoomReservation, RoomReservationForDayDto>()
             .ForMember(dest => dest.ReservedBy, opt => opt.MapFrom(src =>
                 src.User == null ? null : new PFE.Application.DTOs.RoomReservation.ReservedByDto

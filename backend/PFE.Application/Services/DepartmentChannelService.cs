@@ -22,6 +22,7 @@ public class DepartmentChannelService : IDepartmentChannelService
     public async Task<DepartmentChannelMessageDto> CreateMessageAsync(int userId, CreateDepartmentMessageDto dto)
     {
         var user = await _context.Users
+            .Include(u => u.Role)
             .FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user == null)
@@ -75,6 +76,7 @@ public class DepartmentChannelService : IDepartmentChannelService
     public async Task<DepartmentChannelMessageDto> CreatePollAsync(int userId, CreateDepartmentPollDto dto)
     {
         var user = await _context.Users
+            .Include(u => u.Role)
             .FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user == null)
@@ -279,6 +281,7 @@ public class DepartmentChannelService : IDepartmentChannelService
     public async Task VotePollAsync(int userId, int pollId, VoteDepartmentPollDto dto)
     {
         var user = await _context.Users
+            .Include(u => u.Role)
             .FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user == null)

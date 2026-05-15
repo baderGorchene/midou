@@ -25,8 +25,6 @@ const ROLE_ICONS = {
   user: "person-outline",
   manager: "people-outline",
   admin: "shield-checkmark-outline",
-  hr: "briefcase-outline",
-  rh: "briefcase-outline",
 };
 
 const ROLE_COLORS = ["#3B82F6", "#8B5CF6", "#E11D48", "#F59E0B", "#10B981"];

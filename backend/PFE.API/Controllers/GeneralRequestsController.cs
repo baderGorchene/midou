@@ -20,11 +20,6 @@ public class GeneralRequestsController : ControllerBase
         _generalRequestService = generalRequestService;
     }
 
-    /// <summary>
-    /// Create a new general request (Employee)
-    /// </summary>
-    /// <param name="dto">Request details (Category: HR/IT/Admin)</param>
-    /// <returns>Created request</returns>
     [HttpPost]
     public async Task<ActionResult<ApiResponse<GeneralRequestDto>>> CreateRequest([FromBody] CreateGeneralRequestDto dto)
     {

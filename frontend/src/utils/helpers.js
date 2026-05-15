@@ -66,10 +66,14 @@ export const roleToString = (role) => {
   // supports "Employee" or 1
   if (typeof role === "string") return role;
   switch (role) {
-    case 1: return "Employee";
-    case 2: return "Manager";
-    case 3: return "Admin";
-    default: return "Employee";
+    case 1:
+      return "Employee";
+    case 2:
+      return "Manager";
+    case 3:
+      return "Admin";
+    default:
+      return "Employee";
   }
 };
 

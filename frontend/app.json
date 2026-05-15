@@ -24,7 +24,8 @@
           "savePhotosPermission": "Autoriser l'application à enregistrer les QR codes dans la galerie.",
           "isAccessMediaLocationEnabled": false
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "android": {
       "package": "com.anonymous.pfemobileapp",

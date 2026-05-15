@@ -1,11 +1,14 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import api from "../services/api/axiosInstance";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
 import { Button, Card } from "../components";
@@ -22,22 +25,47 @@ const ProfileScreen = ({ navigation }) => {
   } = useTheme();
 
   const { user, signOut } = useAuth();
+  
+  const [profileData, setProfileData] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
 
-  const displayName =
-    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-    user?.fullName ||
-    "Utilisateur";
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const fetchProfile = async () => {
+        try {
+          const res = await api.get("/Profile/me");
+          if (res.data?.success && isActive) {
+            setProfileData(res.data.data);
+          }
+        } catch (error) {
+          console.error("Error fetching profile", error);
+        } finally {
+          if (isActive) setLoadingProfile(false);
+        }
+      };
+      
+      fetchProfile();
+      return () => { isActive = false; };
+    }, [])
+  );
 
-  const email = user?.email || "";
-  const phone = user?.phoneNumber || user?.phone || "Non renseigné";
-  const department = user?.department || "Non renseigné";
-  const jobTitle = user?.jobTitle || user?.position || "Non renseigné";
-  const managerName = user?.managerName || "Non renseigné";
-  const employeeId = user?.employeeId || user?.id || "N/A";
-  const joinDate = user?.joinDate || user?.createdAt || "Non renseigné";
-  const workMode = user?.workMode || "Sur site";
+  const currentUser = profileData?.user || user;
+  const historyData = profileData?.history || [];
 
-  const rawRole = user?.role;
+  const displayName = currentUser?.fullName || "Utilisateur";
+
+  const email = currentUser?.email || "";
+  const phone = currentUser?.phoneNumber || "Non renseigné";
+  const department = currentUser?.departmentName || "Non renseigné";
+  const jobTitle = currentUser?.roleName || "Non renseigné";
+  const employeeId = currentUser?.id || "N/A";
+  
+  const joinDate = currentUser?.createdAt
+    ? new Date(currentUser.createdAt).toLocaleDateString("fr-FR")
+    : "Non renseigné";
+
+  const rawRole = currentUser?.roleId || currentUser?.role;
   const role =
     typeof rawRole === "string"
       ? rawRole.charAt(0).toUpperCase() + rawRole.slice(1)
@@ -52,6 +80,14 @@ const ProfileScreen = ({ navigation }) => {
   const isManager = rawRole === 2 || rawRole === "manager" || rawRole === "Manager";
   const isAdmin = rawRole === 3 || rawRole === "admin" || rawRole === "Admin";
   const isEmployee = rawRole === 1 || rawRole === "employee" || rawRole === "Employé";
+
+  const pendingRequestsCount = historyData.filter(h => h.status === "Pending").length;
+  
+  const today = new Date().toISOString().split('T')[0];
+  const todayDesk = historyData.find(
+    h => h.type === "SeatReservation" && h.status === "Approved" && h.title.includes(today)
+  );
+  const deskLabel = todayDesk ? todayDesk.title.split(" - ")[0] : "Aucun";
 
   const handleSignOut = () => {
     signOut();
@@ -309,7 +345,14 @@ const ProfileScreen = ({ navigation }) => {
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      <Card style={[styles.card, styles.profileCard]}>
+      {loadingProfile ? (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", minHeight: 300 }}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={{ marginTop: 12, color: colors.textSecondary }}>Chargement du profil...</Text>
+        </View>
+      ) : (
+        <>
+          <Card style={[styles.card, styles.profileCard]}>
         <View style={styles.avatarWrap}>
           <Ionicons name="person" size={42} color={colors.primary} />
         </View>
@@ -350,17 +393,15 @@ const ProfileScreen = ({ navigation }) => {
 
         <InfoRow icon="briefcase-outline" label="Poste" value={jobTitle} />
         <InfoRow icon="business-outline" label="Département" value={department} />
-        <InfoRow icon="people-outline" label="Manager" value={managerName} />
         <InfoRow icon="calendar-outline" label="Date d’entrée" value={String(joinDate)} />
-        <InfoRow icon="laptop-outline" label="Mode de travail" value={workMode} />
       </Card>
 
       <View>
         <Text style={styles.sectionTitle}>Aperçu rapide</Text>
         <View style={styles.statsRow}>
-          <StatCard icon="airplane-outline" label="Congés restants" value="12" />
-          <StatCard icon="time-outline" label="Demandes en attente" value="2" />
-          <StatCard icon="desktop-outline" label="Desk du jour" value="A-12" />
+          <StatCard icon="airplane-outline" label="Congés restants" value={currentUser?.leaveBalance?.toString() || "0"} />
+          <StatCard icon="time-outline" label="Demandes en attente" value={pendingRequestsCount.toString()} />
+          <StatCard icon="desktop-outline" label="Desk du jour" value={deskLabel} />
         </View>
       </View>
 
@@ -474,6 +515,8 @@ const ProfileScreen = ({ navigation }) => {
           onPress={handleSignOut}
         />
       </View>
+      </>
+      )}
     </ScrollView>
   );
 };

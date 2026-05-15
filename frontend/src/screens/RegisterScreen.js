@@ -25,12 +25,14 @@ const RegisterScreen = () => {
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
   const emailRef = useRef(null);
+  const phoneRef = useRef(null);
   const passwordRef = useRef(null);
   const confirmPasswordRef = useRef(null);
 
@@ -45,6 +47,10 @@ const RegisterScreen = () => {
       next.email = "Veuillez saisir votre e-mail";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       next.email = "Veuillez saisir un e-mail valide";
+    }
+
+    if (!phoneNumber.trim()) {
+      next.phoneNumber = "Veuillez saisir votre numéro de téléphone";
     }
 
     if (!password) {
@@ -72,6 +78,7 @@ const RegisterScreen = () => {
     try {
       const payload = {
         email: email.trim(),
+        phoneNumber: phoneNumber.trim(),
         password,
         fullName: fullName.trim(),
         departmentId: DEFAULT_DEPARTMENT_ID,
@@ -244,8 +251,22 @@ const RegisterScreen = () => {
                 autoComplete="email"
                 returnKeyType="next"
                 blurOnSubmit={false}
-                onSubmitEditing={() => passwordRef.current?.focus()}
+                onSubmitEditing={() => phoneRef.current?.focus()}
                 error={errors.email}
+                editable={!loading}
+              />
+
+              <Input
+                ref={phoneRef}
+                label="Numéro de téléphone"
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                placeholder="+33 6 12 34 56 78"
+                keyboardType="phone-pad"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                error={errors.phoneNumber}
                 editable={!loading}
               />
 

@@ -20,7 +20,7 @@ public class RoomReservationsController : ControllerBase
     }
 
     [HttpGet("for-day")]
-    [Authorize(Roles = "HR,Manager,Admin")]
+    [Authorize(Roles = "Manager,Admin")]
     public async Task<ActionResult<ApiResponse<List<RoomReservationForDayDto>>>> GetReservationsForDay(
         [FromQuery] int roomId,
         [FromQuery] DateTime? date)
@@ -49,7 +49,7 @@ public class RoomReservationsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "HR,Manager,Admin")]
+    [Authorize(Roles = "Manager,Admin")]
     public async Task<ActionResult<ApiResponse<RoomReservationDto>>> CreateReservation(
         [FromBody] CreateRoomReservationDto dto)
     {
@@ -64,7 +64,7 @@ public class RoomReservationsController : ControllerBase
     }
 
     [HttpPost("{id}/scan-start")]
-    [Authorize(Roles = "HR,Manager,Admin")]
+    [Authorize(Roles = "Manager,Admin")]
     public async Task<ActionResult<ApiResponse<object>>> ScanStart(
         [FromRoute] int id,
         [FromBody] ScanRoomDto dto)
@@ -79,7 +79,7 @@ public class RoomReservationsController : ControllerBase
     }
 
     [HttpPost("{id}/scan-finish")]
-    [Authorize(Roles = "HR,Manager,Admin")]
+    [Authorize(Roles = "Manager,Admin")]
     public async Task<ActionResult<ApiResponse<object>>> ScanFinish(
         [FromRoute] int id,
         [FromBody] ScanRoomDto dto)

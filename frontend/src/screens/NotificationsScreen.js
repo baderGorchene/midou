@@ -187,16 +187,11 @@ const NotificationsScreen = () => {
 
   const handleNotificationPress = async (item) => {
     if (item.isRead) return;
-
-    // optimistic local update
     setNotifications((prev) =>
       prev.map((notif) =>
         notif.id === item.id ? { ...notif, isRead: true } : notif
       )
     );
-
-    // if your backend later supports single-read endpoint,
-    // replace this with that endpoint.
   };
 
   useFocusEffect(

@@ -32,9 +32,6 @@ if (
 
 
 
-/* ══════════════════════════════════
-   Edit/Add Seat Modal
-══════════════════════════════════ */
 const EditSeatModal = ({
   visible,
   seat,
@@ -48,19 +45,13 @@ const EditSeatModal = ({
   borderRadius,
 }) => {
   const [label, setLabel] = useState("");
-  const [positionX, setPositionX] = useState("0");
-  const [positionY, setPositionY] = useState("0");
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   React.useEffect(() => {
     if (visible) {
       setLabel(seat?.label ?? seat?.Label ?? "");
-      setPositionX(String(seat?.positionX ?? seat?.PositionX ?? "0"));
-      setPositionY(String(seat?.positionY ?? seat?.PositionY ?? "0"));
       setIsActive(seat ? (seat?.isActive ?? seat?.IsActive ?? true) : true);
-      setShowAdvanced(false);
     }
   }, [visible, seat, defaultTableId]);
 
@@ -74,22 +65,13 @@ const EditSeatModal = ({
       Alert.alert("Validation", "ID de table invalide.");
       return;
     }
-    const posX = Number(positionX);
-    const posY = Number(positionY);
-    if (isNaN(posX) || isNaN(posY)) {
-      Alert.alert(
-        "Validation",
-        "Les positions X et Y doivent être numériques.",
-      );
-      return;
-    }
     setSaving(true);
     try {
       const baseDto = {
         label: label.trim(),
         officeTableId: tableId,
-        positionX: posX,
-        positionY: posY,
+        positionX: 0,
+        positionY: 0,
       };
       const dto = seat ? { ...baseDto, isActive } : baseDto;
       await onSave(seat?.id ?? seat?.Id, dto);
@@ -163,14 +145,6 @@ const EditSeatModal = ({
           color: colors.text,
           marginBottom: spacing.md,
         },
-        advancedToggle: {
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 6,
-          paddingVertical: 8,
-          marginBottom: spacing.sm,
-        },
-        advancedText: { fontSize: typography.sm, color: colors.textSecondary },
         statusToggle: {
           flexDirection: "row",
           alignItems: "center",
@@ -179,8 +153,6 @@ const EditSeatModal = ({
           paddingVertical: 10,
         },
         statusLabel: { fontSize: typography.sm, color: colors.text, flex: 1 },
-        row: { flexDirection: "row", gap: spacing.md },
-        col: { flex: 1 },
         btnRow: { flexDirection: "row", gap: 10, marginTop: spacing.md },
         cancel: {
           flex: 1,
@@ -273,53 +245,6 @@ const EditSeatModal = ({
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity
-              style={s.advancedToggle}
-              onPress={() => setShowAdvanced(!showAdvanced)}
-            >
-              <Ionicons
-                name={
-                  showAdvanced
-                    ? "chevron-down-outline"
-                    : "chevron-forward-outline"
-                }
-                size={14}
-                color={colors.textSecondary}
-              />
-              <Text style={s.advancedText}>
-                Paramètres avancés (coordonnées)
-              </Text>
-            </TouchableOpacity>
-
-            {showAdvanced && (
-              <View style={s.row}>
-                <View style={s.col}>
-                  <Text style={s.label}>Position X</Text>
-                  <TextInput
-                    style={s.input}
-                    value={positionX}
-                    onChangeText={setPositionX}
-                    keyboardType="numeric"
-                    placeholder="0"
-                    placeholderTextColor={colors.placeholder}
-                    editable={!saving}
-                  />
-                </View>
-                <View style={s.col}>
-                  <Text style={s.label}>Position Y</Text>
-                  <TextInput
-                    style={s.input}
-                    value={positionY}
-                    onChangeText={setPositionY}
-                    keyboardType="numeric"
-                    placeholder="0"
-                    placeholderTextColor={colors.placeholder}
-                    editable={!saving}
-                  />
-                </View>
-              </View>
-            )}
-
             <View style={s.btnRow}>
               <TouchableOpacity
                 style={s.cancel}
@@ -347,9 +272,6 @@ const EditSeatModal = ({
   );
 };
 
-/* ══════════════════════════════════
-   Edit/Add Table Modal
-══════════════════════════════════ */
 const EditTableModal = ({
   visible,
   table,
@@ -361,21 +283,13 @@ const EditTableModal = ({
   borderRadius,
 }) => {
   const [name, setName] = useState("");
-  const [positionX, setPositionX] = useState("0");
-  const [positionY, setPositionY] = useState("0");
-  const [width, setWidth] = useState("100");
-  const [height, setHeight] = useState("100");
+  const [seatCount, setSeatCount] = useState("8");
   const [saving, setSaving] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   React.useEffect(() => {
     if (visible) {
       setName(table?.name ?? table?.Name ?? "");
-      setPositionX(String(table?.positionX ?? table?.PositionX ?? "0"));
-      setPositionY(String(table?.positionY ?? table?.PositionY ?? "0"));
-      setWidth(String(table?.width ?? table?.Width ?? "100"));
-      setHeight(String(table?.height ?? table?.Height ?? "100"));
-      setShowAdvanced(false);
+      setSeatCount(table ? "" : "8");
     }
   }, [visible, table]);
 
@@ -384,16 +298,21 @@ const EditTableModal = ({
       Alert.alert("Validation", "Le nom de la table est obligatoire.");
       return;
     }
+    const count = parseInt(seatCount, 10);
+    if (!table && (isNaN(count) || count <= 0)) {
+      Alert.alert("Validation", "Le nombre de sièges doit être supérieur à 0.");
+      return;
+    }
     setSaving(true);
     try {
       const dto = {
         name: name.trim(),
-        positionX: Number(positionX) || 0,
-        positionY: Number(positionY) || 0,
-        width: Number(width) || 100,
-        height: Number(height) || 100,
+        positionX: 0,
+        positionY: 0,
+        width: 100,
+        height: 100,
       };
-      await onSave(table?.id ?? table?.Id, dto);
+      await onSave(table?.id ?? table?.Id, dto, count);
       onClose();
     } catch (err) {
       Alert.alert(
@@ -452,16 +371,6 @@ const EditTableModal = ({
           color: colors.text,
           marginBottom: spacing.md,
         },
-        advancedToggle: {
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 6,
-          paddingVertical: 8,
-          marginBottom: spacing.sm,
-        },
-        advancedText: { fontSize: typography.sm, color: colors.textSecondary },
-        row: { flexDirection: "row", gap: spacing.md },
-        col: { flex: 1 },
         btnRow: { flexDirection: "row", gap: 10, marginTop: spacing.md },
         cancel: {
           flex: 1,
@@ -528,78 +437,18 @@ const EditTableModal = ({
               autoFocus
             />
 
-            <TouchableOpacity
-              style={s.advancedToggle}
-              onPress={() => setShowAdvanced(!showAdvanced)}
-            >
-              <Ionicons
-                name={
-                  showAdvanced
-                    ? "chevron-down-outline"
-                    : "chevron-forward-outline"
-                }
-                size={14}
-                color={colors.textSecondary}
-              />
-              <Text style={s.advancedText}>
-                Paramètres avancés (position & dimensions)
-              </Text>
-            </TouchableOpacity>
-
-            {showAdvanced && (
+            {!table && (
               <>
-                <View style={s.row}>
-                  <View style={s.col}>
-                    <Text style={s.label}>Position X</Text>
-                    <TextInput
-                      style={s.input}
-                      value={positionX}
-                      onChangeText={setPositionX}
-                      keyboardType="numeric"
-                      placeholder="0"
-                      placeholderTextColor={colors.placeholder}
-                      editable={!saving}
-                    />
-                  </View>
-                  <View style={s.col}>
-                    <Text style={s.label}>Position Y</Text>
-                    <TextInput
-                      style={s.input}
-                      value={positionY}
-                      onChangeText={setPositionY}
-                      keyboardType="numeric"
-                      placeholder="0"
-                      placeholderTextColor={colors.placeholder}
-                      editable={!saving}
-                    />
-                  </View>
-                </View>
-                <View style={s.row}>
-                  <View style={s.col}>
-                    <Text style={s.label}>Largeur</Text>
-                    <TextInput
-                      style={s.input}
-                      value={width}
-                      onChangeText={setWidth}
-                      keyboardType="numeric"
-                      placeholder="100"
-                      placeholderTextColor={colors.placeholder}
-                      editable={!saving}
-                    />
-                  </View>
-                  <View style={s.col}>
-                    <Text style={s.label}>Hauteur</Text>
-                    <TextInput
-                      style={s.input}
-                      value={height}
-                      onChangeText={setHeight}
-                      keyboardType="numeric"
-                      placeholder="100"
-                      placeholderTextColor={colors.placeholder}
-                      editable={!saving}
-                    />
-                  </View>
-                </View>
+                <Text style={s.label}>Nombre de sièges</Text>
+                <TextInput
+                  style={s.input}
+                  value={seatCount}
+                  onChangeText={setSeatCount}
+                  keyboardType="numeric"
+                  placeholder="8"
+                  placeholderTextColor={colors.placeholder}
+                  editable={!saving}
+                />
               </>
             )}
 
@@ -697,7 +546,7 @@ const SeatManagementScreen = () => {
     }, [loadData]),
   );
 
-  const handleSaveTable = async (id, dto) => {
+  const handleSaveTable = async (id, dto, seatCount) => {
     if (id) {
       const res = await adminOfficeTableService.updateOfficeTable(id, dto);
       const updated = adminOfficeTableService.extractData(res);
@@ -709,6 +558,29 @@ const SeatManagementScreen = () => {
       const created = adminOfficeTableService.extractData(res);
       setTables((prev) => [...prev, created]);
       setSeatsByTableId((prev) => ({ ...prev, [created.id ?? created.Id]: [] }));
+
+      if (seatCount && seatCount > 0) {
+        const tableId = created.id ?? created.Id;
+        const newSeats = [];
+        for (let i = 1; i <= seatCount; i++) {
+          const seatDto = {
+            label: `S${i}`,
+            officeTableId: tableId,
+            positionX: 0,
+            positionY: 0,
+          };
+          try {
+            const seatRes = await adminSeatService.createSeat(seatDto);
+            newSeats.push(adminSeatService.extractData(seatRes));
+          } catch (e) {
+            console.error("Error creating seat", e);
+          }
+        }
+        setSeatsByTableId((prev) => ({
+          ...prev,
+          [tableId]: newSeats,
+        }));
+      }
     }
   };
 
@@ -962,12 +834,6 @@ const SeatManagementScreen = () => {
           </Text>
         </View>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          <TouchableOpacity
-            style={[styles.addBtn, { backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border }]}
-            onPress={() => navigation.navigate("AdminOfficeLayout")}
-          >
-            <Ionicons name="map-outline" size={18} color={colors.text} />
-          </TouchableOpacity>
           <TouchableOpacity
             style={styles.addBtn}
             onPress={() => {

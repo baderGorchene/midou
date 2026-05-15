@@ -250,7 +250,7 @@ export default function ManageEventsScreen() {
           <View style={styles.headerTextWrap}>
             <Text style={styles.headerTitle}>Créer un événement</Text>
             <Text style={styles.headerSubtitle}>
-              Admin / RH : créez un événement visible dans l’application.
+              Admin : créez un événement visible dans l'application.
             </Text>
           </View>
         </View>

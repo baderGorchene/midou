@@ -70,8 +70,17 @@ const EventsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const role = normalizeRole(user?.role);
-  const canManageEvents = role === "admin" || role === "hr" || role === 3 || role === 4;
+  // In this app, role is stored as roleId (Admin = 3).
+  // Some screens might use roleName, but EventsScreen must work with roleId.
+  const roleId = user?.roleId ?? user?.role;
+  const roleName = user?.roleName;
+
+  const canManageEvents =
+    roleId === 3 ||
+    String(roleName ?? "")
+      .trim()
+      .toLowerCase() === "admin" ||
+    roleName === "Admin";
 
   const formatDateForApi = (date) => date.toISOString().split("T")[0];
 
@@ -79,8 +88,6 @@ const EventsScreen = () => {
     try {
       if (showLoader) setLoading(true);
 
-      // Backend: GET /api/Events?date=YYYY-MM-DD returns events for that day only.
-      // To show "upcoming", we load the next N days and merge.
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -92,7 +99,6 @@ const EventsScreen = () => {
         d.setDate(today.getDate() + i);
 
         const dateStr = formatDateForApi(d);
-        // eventService already uses '/events' and correct query parameter
         const res = await eventService.getEventsByDate(dateStr);
         const list = res?.data || [];
         if (Array.isArray(list) && list.length > 0) results.push(...list);
@@ -103,10 +109,10 @@ const EventsScreen = () => {
         .filter((e) => e.id != null)
         .sort(
           (a, b) =>
-            new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime(),
+            new Date(a.startDateTime).getTime() -
+            new Date(b.startDateTime).getTime(),
         );
 
-      // de-dupe by id
       const uniq = [];
       const seen = new Set();
       for (const e of normalized) {
@@ -131,7 +137,6 @@ const EventsScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      // refresh when coming back from create screen
       loadEvents(false);
     }, [loadEvents]),
   );
@@ -199,7 +204,9 @@ const EventsScreen = () => {
             <Text style={styles.metaExtra}>
               {item.roomName ? item.roomName : null}
               {item.roomName && item.type ? " • " : null}
-              {item.type ? (EVENT_TYPE_LABEL_FR[item.type] ?? "Événement") : null}
+              {item.type
+                ? (EVENT_TYPE_LABEL_FR[item.type] ?? "Événement")
+                : null}
             </Text>
           )}
         </View>
@@ -215,19 +222,34 @@ const EventsScreen = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Chargement des événements à venir...</Text>
+        <Text style={styles.loadingText}>
+          Chargement des événements à venir...
+        </Text>
       </View>
     );
   }
 
   if (events.length === 0) {
     return (
-      <View style={styles.emptyWrapper}>
-        <EmptyState
-          iconName="calendar-outline"
-          title="Aucun événement"
-          subtitle="Il n’y a aucun événement à venir."
-        />
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.headerTopRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.screenTitle}>Événements à venir</Text>
+              <Text style={styles.screenSubtitle}>
+                Restez informé des prochains événements
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.emptyWrapper}>
+          <EmptyState
+            iconName="calendar-outline"
+            title="Aucun événement"
+            subtitle="Il n’y a aucun événement à venir."
+          />
+        </View>
       </View>
     );
   }
@@ -242,18 +264,6 @@ const EventsScreen = () => {
               Restez informé des prochains événements
             </Text>
           </View>
-
-          {canManageEvents && (
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => navigation.navigate("EventManagement")}
-              activeOpacity={0.85}
-              accessibilityLabel="Gérer les événements"
-            >
-              <Ionicons name="add" size={18} color={colors.textOnPrimary} />
-              <Text style={styles.addButtonText}>Créer</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </View>
 
