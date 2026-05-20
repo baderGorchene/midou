@@ -1,41 +1,34 @@
 # CheckPoint Chatbot
 
 AI assistant for the CheckPoint workplace management system.  
-Uses **Ollama** (gemma4) for reasoning and **MCP** (Model Context Protocol) for database access via function calling.
+Uses **Ollama** (e.g., `gemma4:e4b`) for reasoning and **Entity Framework Core** with Function Calling for direct database access.
 
 ## Prerequisites
 
 | Requirement | Version |
 |---|---|
-| Python | 3.10+ |
-| Ollama | Running locally with `gemma4:e4b` model |
-| SQL Server | CheckPoint_DB must exist (run the .NET app once) |
-| ODBC Driver | ODBC Driver 18 for SQL Server |
+| .NET SDK | 8.0+ |
+| Ollama | Running locally with `gemma4:e4b` model (or edit `Program.cs` to use your preferred model) |
+| SQL Server | CheckPoint_DB must exist and be accessible |
 
-## Setup
+## Setup & Usage
 
+### 1. Start Ollama
+Ensure Ollama is running and you have the model pulled:
+```bash
+ollama run gemma4:e4b
+```
+
+### 2. Start the Application
+Navigate to the project directory and run the .NET application:
 ```bash
 cd PFE.Chatbot
-
-# Create virtual environment
-python -m venv venv
-venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
+dotnet run
 ```
 
-## Usage
-
-### 1. Seed mock data (run once)
-```bash
-python seed_data.py
-```
-
-### 2. Start the chatbot
-```bash
-python chatbot.py
-```
+### 3. Seed mock data (Optional)
+Upon startup, the console will ask if you want to seed the database with mock data. 
+Type `y` if you want to populate the database with test employees, departments, leave requests, etc.
 
 ### Example queries
 - "How many employees are in each department?"
@@ -47,26 +40,28 @@ python chatbot.py
 
 ## Architecture
 
-```
-You ──► chatbot.py ──► Ollama (gemma4:e4b) ──► tool_calls
-                                                    │
-                                          MCP Client (stdio)
-                                                    │
-                                          mcp_db_server.py
-                                                    │
-                                          SQL Server (CheckPoint_DB)
+```text
+You ──► Program.cs (CLI) ──► ChatbotAgent ──► Ollama (gemma4:e4b via OllamaSharp)
+                                   │
+                           Function Calling
+                                   │
+                             DatabaseTools
+                                   │
+                      SQL Server (CheckPoint_DB via EF Core)
 ```
 
-## MCP Tools Available
+## AI Tools Available
+
+The chatbot is equipped with the following tools to query real-time data:
 
 | Tool | Description |
 |---|---|
-| `get_departments` | List departments with employee counts |
-| `get_employees` | List employees, filter by department |
-| `get_employee_details` | Get details for a specific employee |
-| `get_leave_requests` | Leave requests, filter by status |
-| `get_events` | Upcoming company events |
-| `get_rooms` | All rooms with type and capacity |
-| `get_announcements` | Active company announcements |
-| `get_general_requests` | Support requests, filter by status |
-| `get_statistics` | Overall company dashboard stats |
+| `GetDepartments` | List departments with employee counts |
+| `GetEmployees` | List employees, optionally filter by department |
+| `GetEmployeeDetails` | Get detailed information for a specific employee |
+| `GetLeaveRequests` | Leave requests, optionally filter by status (Pending, Approved, Rejected) |
+| `GetEvents` | Upcoming company events |
+| `GetRooms` | All conference, meeting, and training rooms |
+| `GetAnnouncements` | Active company announcements |
+| `GetGeneralRequests` | Support requests, optionally filter by status |
+| `GetStatistics` | Overall company dashboard stats |
