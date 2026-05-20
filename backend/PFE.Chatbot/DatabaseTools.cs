@@ -204,7 +204,7 @@ public class DatabaseTools
     {
         var query = _context.GeneralRequests
             .Include(gr => gr.User)
-            .Include(gr => gr.AssignedTo)
+            .Include(gr => gr.AssignedToUser)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status))
@@ -224,7 +224,7 @@ public class DatabaseTools
                 gr.Description,
                 Category = gr.Category.ToString(),
                 Status = gr.Status.ToString(),
-                AssignedTo = gr.AssignedTo != null ? gr.AssignedTo.FullName : "None",
+                AssignedTo = gr.AssignedToUser != null ? gr.AssignedToUser.FullName : "None",
                 gr.CreatedAt
             })
             .OrderByDescending(gr => gr.CreatedAt)

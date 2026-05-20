@@ -26,7 +26,7 @@ public class ChatbotAgent
             .Build();
 
         // Create AI functions from our DatabaseTools class
-        var tools = new List<AIFunction>
+        var tools = new List<AITool>
         {
             AIFunctionFactory.Create(dbTools.GetDepartmentsAsync, "GetDepartments", "Get all departments with their employee counts."),
             AIFunctionFactory.Create(dbTools.GetEmployeesAsync, "GetEmployees", "Get employees, optionally filtered by department name. Pass an empty string to get all employees."),
