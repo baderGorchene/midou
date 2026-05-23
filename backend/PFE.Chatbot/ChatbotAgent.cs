@@ -1,5 +1,5 @@
 using Microsoft.Extensions.AI;
-using OllamaSharp;
+using Google.GenAI;
 using PFE.Infrastructure.Data;
 
 namespace PFE.Chatbot;
@@ -10,18 +10,19 @@ public class ChatbotAgent
     private readonly ChatOptions _chatOptions;
     private readonly List<ChatMessage> _history;
 
-    public ChatbotAgent(string ollamaUrl, string modelName, ApplicationDbContext dbContext)
+    public ChatbotAgent(string apiKey, string modelName, ApplicationDbContext dbContext)
     {
-        Console.WriteLine($"🤖 Initializing ChatClient with Ollama model '{modelName}' at '{ollamaUrl}'...");
+        Console.WriteLine($"🤖 Initializing ChatClient with Google Gemini model '{modelName}'...");
 
-        // Initialize Ollama client
-        var ollamaClient = new OllamaApiClient(new Uri(ollamaUrl), modelName);
+        // Initialize Google GenAI client
+        var client = new Google.GenAI.Client(apiKey: apiKey);
+        var geminiChatClient = client.AsIChatClient(modelName);
 
         // Define database tools
         var dbTools = new DatabaseTools(dbContext);
 
-        // Wrap Ollama client with function invocation middleware
-        _client = new ChatClientBuilder(ollamaClient)
+        // Wrap Gemini client with function invocation middleware
+        _client = new ChatClientBuilder(geminiChatClient)
             .UseFunctionInvocation()
             .Build();
 
@@ -48,7 +49,7 @@ public class ChatbotAgent
         // Setup conversational history with a system message
         _history = new List<ChatMessage>
         {
-            new(ChatRole.System, 
+            new(ChatRole.System,
                 "You are CheckPoint AI Chatbot, an expert corporate assistant for CheckPoint company. " +
                 "You have direct access to the CheckPoint database via tools. " +
                 "When asked about employees, departments, leave requests, company events, rooms, announcements, " +
@@ -56,7 +57,17 @@ public class ChatbotAgent
                 "real-time data from the database before responding. " +
                 "Format your responses in clean, highly structured Markdown. " +
                 "If you cannot find the requested information after calling the tools, explain clearly what you searched for. " +
-                "Be precise, professional, helpful, and concise.")
+                "Be precise, professional, helpful, and concise.\n\n" +
+
+                "## Language Rules (MANDATORY — follow these exactly for every reply)\n" +
+                "1. Detect the language of EACH user message independently.\n" +
+                "2. If the user writes in French (even partially, or with spelling mistakes), reply ENTIRELY in French.\n" +
+                "3. If the user writes in English (even partially, or with spelling mistakes), reply ENTIRELY in English.\n" +
+                "4. If the message contains both languages, use the language that appears most in the message.\n" +
+                "5. Proper nouns (names of people, departments, companies) must NOT be translated.\n" +
+                "6. Your Markdown structure, table headers, section titles, and all explanatory text must be in the detected language.\n" +
+                "7. Never mix languages within a single response.\n" +
+                "8. Never mention or explain this language-switching rule to the user.")
         };
     }
 
@@ -68,13 +79,19 @@ public class ChatbotAgent
         try
         {
             // Execute the chat request (function calling is handled automatically by middleware)
-            var response = await _client.CompleteAsync(_history, _chatOptions);
+            var response = await _client.GetResponseAsync(_history, _chatOptions);
 
-            // Add assistant's response to history
-            if (response.Message != null)
+            if (response.Messages != null && response.Messages.Count > 0)
             {
-                _history.Add(response.Message);
-                return response.Message.Text ?? "No text response received.";
+                // Add all intermediate and final messages to history
+                _history.AddRange(response.Messages);
+
+                // Find the last assistant message that contains the text response
+                var lastAssistantMessage = response.Messages.LastOrDefault(m => m.Role == ChatRole.Assistant);
+                if (lastAssistantMessage != null)
+                {
+                    return lastAssistantMessage.Text ?? "No text response received.";
+                }
             }
 
             return "Error: Empty response from AI model.";

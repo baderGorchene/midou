@@ -11,9 +11,11 @@ public class Program
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine("==================================================");
-        Console.WriteLine("🌐 CheckPoint AI Chatbot - .NET Edition (MAF/Ollama) 🌐");
+        Console.WriteLine("🌐 CheckPoint AI Chatbot - .NET Edition (MAF/Gemini) 🌐");
         Console.WriteLine("==================================================");
         Console.ResetColor();
+
+
 
         // 1. Build configuration to read connection string from PFE.API/appsettings.json
         string apiPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "PFE.API");
@@ -69,13 +71,13 @@ public class Program
         }
 
         // 4. Initialize Chatbot Agent
-        string ollamaUrl = "http://localhost:11434";
-        string modelName = "gemma4:e4b";
+        string apiKey = "AIzaSyAYPr6Dw4Kx9fiUVTXnV7W8RkBYfT5jVmY";
+        string modelName = "gemini-2.5-flash";
 
         ChatbotAgent agent;
         try
         {
-            agent = new ChatbotAgent(ollamaUrl, modelName, dbContext);
+            agent = new ChatbotAgent(apiKey, modelName, dbContext);
         }
         catch (Exception ex)
         {

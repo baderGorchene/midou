@@ -1,22 +1,30 @@
 # CheckPoint Chatbot
 
 AI assistant for the CheckPoint workplace management system.  
-Uses **Ollama** (e.g., `gemma4:e4b`) for reasoning and **Entity Framework Core** with Function Calling for direct database access.
+Uses **Google Gemini (`gemini-3.5-flash`)** for reasoning and **Entity Framework Core** with Function Calling for direct database access.
 
 ## Prerequisites
 
 | Requirement | Version |
 |---|---|
 | .NET SDK | 8.0+ |
-| Ollama | Running locally with `gemma4:e4b` model (or edit `Program.cs` to use your preferred model) |
+| Google AI Studio API Key | Set in `Program.cs` or as an environment variable (`GOOGLE_API_KEY` / `GEMINI_API_KEY`) |
 | SQL Server | CheckPoint_DB must exist and be accessible |
 
 ## Setup & Usage
 
-### 1. Start Ollama
-Ensure Ollama is running and you have the model pulled:
+### 1. Configure Gemini API Key (Optional)
+The application includes a pre-configured fallback API key for Google AI Studio inside `Program.cs`. 
+If you prefer to use your own key, set the `GOOGLE_API_KEY` or `GEMINI_API_KEY` environment variable on your system:
+
+#### Windows (PowerShell):
+```powershell
+$env:GOOGLE_API_KEY="YOUR_API_KEY"
+```
+
+#### Linux/macOS:
 ```bash
-ollama run gemma4:e4b
+export GOOGLE_API_KEY="YOUR_API_KEY"
 ```
 
 ### 2. Start the Application
@@ -41,13 +49,13 @@ Type `y` if you want to populate the database with test employees, departments, 
 ## Architecture
 
 ```text
-You ──► Program.cs (CLI) ──► ChatbotAgent ──► Ollama (gemma4:e4b via OllamaSharp)
+You ──► Program.cs (CLI) ──► ChatbotAgent ──► Google Gemini (gemini-3.5-flash via Google.GenAI)
                                    │
                            Function Calling
                                    │
                              DatabaseTools
                                    │
-                      SQL Server (CheckPoint_DB via EF Core)
+                       SQL Server (CheckPoint_DB via EF Core)
 ```
 
 ## AI Tools Available
